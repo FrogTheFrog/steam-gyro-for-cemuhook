@@ -1,0 +1,6 @@
+node_modules/
+dist/
+private/
+release/
+npm-debug.log*
+.debug/

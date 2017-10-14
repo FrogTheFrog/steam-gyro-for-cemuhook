@@ -1,0 +1,78 @@
+{
+  "name": "steam-gyro-for-cemuhook",
+  "description": "App to add Steam Controller's motion support to Cemuhook",
+  "authors": "FrogTheFrog",
+  "version": "1.0.0",
+  "main": "./dist/main.bundle.js",
+  "author": {
+    "name": "FrogTheFrog",
+    "url": "https://github.com/FrogTheFrog",
+    "email": "warliukz@gmail.com"
+  },
+  "repository": {
+    "url": "https://github.com/FrogTheFrog/steam-gyro-for-cemuhook"
+  },
+  "build": {
+    "appId": "FrogTheFrog.SteamGyroForCemuhook",
+    "productName": "Steam Gyro For Cemuhook",
+    "compression": "normal",
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "./assets/icon.ico"
+    },
+    "portable": {
+      "artifactName": "${productName}.${ext}"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ]
+  },
+  "scripts": {
+    "watch": "webpack --watch",
+    "build": "cross-env NODE_ENV=production webpack",
+    "build:renderer": "cross-env NODE_ENV=production webpack --config ./webpack/renderer.js",
+    "build:dist": "rimraf dist && npm run build",
+    "build:win": "build --win --x64"
+  },
+  "dependencies": {
+    "@types/microtime": "^2.1.0",
+    "@types/random-js": "^1.0.30",
+    "ajv": "^5.2.3",
+    "crc": "^3.5.0",
+    "fs-extra": "^4.0.2",
+    "lodash": "^4.17.4",
+    "long": "^3.2.0",
+    "microtime": "^2.1.6",
+    "node-hid": "^0.5.7",
+    "random-js": "^1.0.8",
+    "random-mac": "0.0.4",
+    "strip-bom": "^3.0.0",
+    "winston": "^2.4.0"
+  },
+  "devDependencies": {
+    "@types/ajv": "^1.0.0",
+    "@types/crc": "^3.4.0",
+    "@types/fs-extra": "^4.0.2",
+    "@types/lodash": "^4.14.77",
+    "@types/long": "^3.0.32",
+    "@types/node": "^8.0.31",
+    "@types/node-hid": "^0.5.2",
+    "@types/winston": "^2.3.6",
+    "awesome-typescript-loader": "^3.2.3",
+    "cross-env": "^5.0.5",
+    "electron": "^1.7.9",
+    "electron-builder": "^19.37.1",
+    "file-loader": "^1.1.5",
+    "rimraf": "^2.6.2",
+    "typescript": "^2.5.2",
+    "webpack": "^3.7.1",
+    "webpack-merge": "^4.1.0",
+    "webpack-node-externals": "^1.6.0"
+  }
+}

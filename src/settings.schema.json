@@ -1,0 +1,13 @@
+{
+    "type": "object",
+    "properties": { 
+        "server": {
+            "type": "string",
+            "default": "127.0.0.1"
+        }, 
+        "port": {
+            "type": "number",
+            "default": 26760
+        } 
+    }
+}

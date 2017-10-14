@@ -1,0 +1,16 @@
+{
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "type": "node",
+                "request": "launch",
+                "name": "Launch Program",
+                "program": "${workspaceRoot}/dist/main.bundle.js",
+                "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+                "outFiles": [
+                    "${workspaceRoot}/dist/*.js"
+                ],
+                "args" : ["."]
+            }
+        ]
+    }

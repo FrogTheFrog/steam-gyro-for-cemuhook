@@ -16,9 +16,11 @@ Make sure that Steam Controller configuration has gyro disabled in places where 
 
 ## How to use
 
-Drag executable anywhere you want and launch it. A settings file will be create in the same directory. If you want, you can change available and click restart on tray icon:
+Drag executable anywhere you want and launch it. You should see a tray icon in the corner, hovering it will show server info:
 
 ![tray-example](./assets/tray.png "Tray example")
+
+A settings file will be created in the same directory. If you want, you can change server adrress, port and click restart on tray.
 
 Finally, go to Cemu and make sure motion source is selected.
 

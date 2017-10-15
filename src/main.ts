@@ -16,15 +16,10 @@ let controller = new SteamController.Interface();
 let ajv = new Ajv({ removeAdditional: 'all', useDefaults: true });
 let validationFn = ajv.compile(require('./settings.schema.json'));
 
+// Start, restart server
 let startServer = () => {
     let userSettingsFile = path.join(userDataDir, 'steam-gyro.json');
-    readJson(userSettingsFile, { server: '127.0.0.1', port: 26760 }).then((data) => {
-        if (!fs.existsSync(userSettingsFile)) {
-            return writeJson(userSettingsFile, data).then(() => data);
-        }
-        else
-            return data;
-    }).then((data) => {
+    readJson(userSettingsFile, { server: '127.0.0.1', port: 26760, melodyOnConnection: 0 }).then((data) => {
         validationFn(data);
         if (validationFn.errors && validationFn.errors.length > 0)
             throw validationFn.errors;
@@ -36,47 +31,61 @@ let startServer = () => {
         else
             throw new Error(`Invalid IPv4 address: ${data.server}.`);
     }).then((data) => {
+        return writeJson(userSettingsFile, data).then(() => data);
+    }).then((data) => {
         if (!controller.connect())
             throw new Error('failed to connect to Steam Controller (not found, make sure it is enabled)');
-            
+
         server.start(data.port, data.server);
         server.removeController();
         server.addController(controller);
 
         tray.setToolTip(`Server@${data.server}:${data.port}`);
+
+        controller.playMelody(data.melodyOnConnection);
     }).catch((error) => {
         winston.error('FATAL ERROR!');
         winston.error(error);
-        exitApp(true);
+        exitApp(error);
     });
 };
 
-let exitApp = (fatal: boolean) => {
+// Exit app and show error window if needed
+let exitApp = (error?: string) => {
     server.stop();
     server.removeController();
     controller.disconnect();
 
-    if (fatal)
-        dialog.showMessageBox(null, { type: 'error', title: 'Steam Gyro encountered a fatal error!', message: 'Error! See error log for details.', icon });
+    if (error != undefined) {
+        try {
+            dialog.showMessageBox(null, { type: 'error', title: 'Steam Gyro encountered a fatal error!', message: 'Error! See error log for details.', icon, detail: JSON.stringify(error, null, 4) });
+        } catch (error) {
+            dialog.showMessageBox(null, { type: 'error', title: 'Steam Gyro encountered a fatal error!', message: 'Error! See error log for details.', icon });
+        }
+    }
 
     app.quit();
 }
 
-winston.add(winston.transports.File, { filename: path.join(userDataDir, 'steam-gyro-errors.log'), prettyPrint: true, json: false });
-
-server.addEventListener('error', (event: string, error: any, fatal: boolean) => {
-    if (fatal)
-        winston.error('FATAL ERROR!');
-    winston.error(error);
-    if (fatal)
-        exitApp(true);
-});
-
+// Check if this app is already running and quit if it is
 const isSecondInstance = app.makeSingleInstance(() => { });
 if (isSecondInstance) {
     app.quit();
 }
 
+// Add filepath to winston logger
+winston.add(winston.transports.File, { filename: path.join(userDataDir, 'steam-gyro-errors.log'), prettyPrint: true, json: false });
+
+// Add necessary events
+server.addEventListener('error', (event: string, error: any, fatal: boolean) => {
+    if (fatal)
+        winston.error('FATAL ERROR!');
+    winston.error(error);
+    if (fatal)
+        exitApp(error);
+});
+
+// Start app
 app.on('ready', () => {
     tray = new Tray(icon);
     contextMenu = Menu.buildFromTemplate([
@@ -94,7 +103,7 @@ app.on('ready', () => {
         {
             type: 'normal',
             label: 'Exit',
-            click: () => exitApp(false)
+            click: () => exitApp()
         }
     ]);
     tray.setContextMenu(contextMenu);

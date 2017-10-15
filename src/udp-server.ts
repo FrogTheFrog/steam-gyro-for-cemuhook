@@ -127,6 +127,10 @@ export namespace UdpServer {
             }
         }
 
+        clearClients(){
+            this.clients.clear();
+        }
+
         private beginPacket(data: Buffer, protocolVer: number = maxProtocolVer) {
             if (data.length >= 16) {
                 let index = 0;

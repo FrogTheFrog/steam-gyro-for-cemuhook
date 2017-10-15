@@ -4,3 +4,5 @@ private/
 release/
 npm-debug.log*
 .debug/
+steam-gyro.json
+steam-gyro-errors.log

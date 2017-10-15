@@ -26,10 +26,24 @@ class FeatureArray {
         return [].concat([this.featureId, this.featureId, this.dataLength], ...this.data);
     }
 
-    set(setting: number, value: number) {
+    setUint8(setting: number, value: number) {
+        this.data[this.dataLength] = setting & 0xFF;
+        this.data.writeUInt8(value, this.dataLength + 1);
+        this.dataLength += 2;
+        return this;
+    }
+
+    setUint16(setting: number, value: number) {
         this.data[this.dataLength] = setting & 0xFF;
         this.data.writeUInt16LE(value, this.dataLength + 1);
         this.dataLength += 3;
+        return this;
+    }
+
+    setUint32(setting: number, value: number) {
+        this.data[this.dataLength] = setting & 0xFF;
+        this.data.writeUInt32LE(value, this.dataLength + 1);
+        this.dataLength += 5;
         return this;
     }
 }
@@ -216,8 +230,18 @@ export namespace SteamController {
                         device.usagePage === 0xFF00
                     ).sort((a, b) => a.interface > b.interface ? 1 : 0);
 
-                    if (devices.length > 0)
-                        hidDevice = new HID(devices[0].path);
+                    if (devices.length > 0){
+                        let device = undefined;
+                        for (let i = 0; i < devices.length; i++) {
+                            device = new HID(devices[i].path);
+                            let data = device.readTimeout(1000);
+                            if (data.length > 0)
+                                break;
+                            else
+                                device = undefined;
+                        }
+                        hidDevice = device;
+                    }
                 }
             }
 
@@ -236,10 +260,6 @@ export namespace SteamController {
             return false;
         }
 
-        isPresent() {
-            return true;
-        }
-
         isValid() {
             return this.steamDevice !== undefined;
         }
@@ -254,7 +274,7 @@ export namespace SteamController {
 
         setHomeButtonBrightness(percentage: number) {
             if (this.isValid()) {
-                let featureArray = new FeatureArray().set(0x2D, percentage < 0 ? 0 : (percentage > 100 ? 100 : Math.floor(percentage)));
+                let featureArray = new FeatureArray().setUint16(0x2D, percentage < 0 ? 0 : (percentage > 100 ? 100 : Math.floor(percentage)));
                 this.steamDevice.sendFeatureReport(featureArray.array);
             }
         }
@@ -275,7 +295,15 @@ export namespace SteamController {
                     value |= 0x08;
                 if (this.motionSensors.quaternion)
                     value |= 0x04;
-                featureArray.set(0x30, value);
+                featureArray.setUint16(0x30, value);
+                this.steamDevice.sendFeatureReport(featureArray.array);
+            }
+        }
+
+        playMelody(id: number){ // id range [0x00; 0x0F]
+            if (this.isValid()) {
+                let featureArray = new FeatureArray(0xB6);
+                featureArray.setUint8(id & 0x0F, 0).setUint8(0, 0);
                 this.steamDevice.sendFeatureReport(featureArray.array);
             }
         }
@@ -312,6 +340,7 @@ export namespace SteamController {
         }
 
         private handleData(data: Buffer) {
+            let time = microtime.now();
             if (!this.handlingData) {
                 this.handlingData = true;
                 let updated = true;
@@ -333,7 +362,7 @@ export namespace SteamController {
 
                 if (event === HidEvent.DataUpdate) {
                     report.state = State.Connected;
-                    report.timestamp = microtime.now() - this.connectionTimestamp;
+                    report.timestamp = time - this.connectionTimestamp;
 
                     report.packetCounter = data.readUInt32LE(index, true);
                     index += 4;
@@ -446,17 +475,17 @@ export namespace SteamController {
 
                 if (updated) {
                     let clonedReport = undefined;
-                    if (this.hasListeners('SC_Report')) {
-                        clonedReport = _.cloneDeep(report);
-                        this.dispatchEvent('SC_Report', clonedReport);
-                    }
-                    if (this.hasListeners('SC_ReportUpdate')) {
-                        this.dispatchEvent('SC_ReportUpdate');
-                    }
                     if (this.hasListeners('DS_Report')) {
                         if (clonedReport === undefined)
                             clonedReport = _.cloneDeep(report);
                         this.dispatchEvent('DS_Report', this.reportToDS_Report(clonedReport), this.reportToDS_Meta(clonedReport));
+                    }
+                    if (this.hasListeners('SC_ReportUpdate')) {
+                        this.dispatchEvent('SC_ReportUpdate', report);
+                    }
+                    if (this.hasListeners('SC_Report')) {
+                        clonedReport = _.cloneDeep(report);
+                        this.dispatchEvent('SC_Report', clonedReport);
                     }
                 }
 

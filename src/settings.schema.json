@@ -8,6 +8,12 @@
         "port": {
             "type": "number",
             "default": 26760
-        } 
+        },
+        "melodyOnConnection": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 13,
+            "default": 0
+        }
     }
 }

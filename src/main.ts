@@ -19,7 +19,7 @@ let validationFn = ajv.compile(require('./settings.schema.json'));
 // Start, restart server
 let startServer = () => {
     let userSettingsFile = path.join(userDataDir, 'steam-gyro.json');
-    readJson(userSettingsFile, { server: '127.0.0.1', port: 26760, melodyOnConnection: 0 }).then((data) => {
+    readJson(userSettingsFile, { server: '127.0.0.1', port: 26760 }).then((data) => {
         validationFn(data);
         if (validationFn.errors && validationFn.errors.length > 0)
             throw validationFn.errors;
@@ -41,8 +41,6 @@ let startServer = () => {
         server.addController(controller);
 
         tray.setToolTip(`Server@${data.server}:${data.port}`);
-
-        controller.playMelody(data.melodyOnConnection);
     }).catch((error) => {
         winston.error('FATAL ERROR!');
         winston.error(error);

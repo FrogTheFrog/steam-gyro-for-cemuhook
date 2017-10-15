@@ -16,7 +16,11 @@ Make sure that Steam Controller configuration has gyro disabled in places where 
 
 ## How to use
 
-Drag executable anywhere you want and launch it. You should see a tray icon in the corner, hovering it will show server info if everything is working properly:
+Drag executable anywhere you want and launch it. Since version 1.0.1 you should see similar notification if everything started successfully:
+
+![notification-example](./assets/notification-example.png "Notification example")
+
+If you right click on tray icon it will allow you to restart server or exit. Moreover, it will show server address and port on hover:
 
 ![tray-example](./assets/tray.png "Tray example")
 

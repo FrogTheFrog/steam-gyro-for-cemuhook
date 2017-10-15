@@ -11,6 +11,7 @@ let tray: Tray = null;
 let contextMenu: Menu = null;
 let userDataDir: string = process.env.PORTABLE_EXECUTABLE_DIR || '';
 let icon: nativeImage = nativeImage.createFromPath(path.join(__dirname, require('../assets/icon.ico')));
+let iconPng: nativeImage = nativeImage.createFromBuffer(icon.toPNG());
 let server = new UdpServer.Interface();
 let controller = new SteamController.Interface();
 let ajv = new Ajv({ removeAdditional: 'all', useDefaults: true });
@@ -40,6 +41,7 @@ let startServer = () => {
         server.removeController();
         server.addController(controller);
 
+        tray.displayBalloon({ title: 'UDP server started', content: `Running@${data.server}:${data.port}`, icon: iconPng });
         tray.setToolTip(`Server@${data.server}:${data.port}`);
     }).catch((error) => {
         winston.error('FATAL ERROR!');
@@ -49,16 +51,21 @@ let startServer = () => {
 };
 
 // Exit app and show error window if needed
-let exitApp = (error?: string) => {
+let exitApp = (error?: any) => {
     server.stop();
     server.removeController();
     controller.disconnect();
 
     if (error != undefined) {
         try {
-            dialog.showMessageBox(null, { type: 'error', title: 'Steam Gyro encountered a fatal error!', message: 'Error! See error log for details.', icon, detail: JSON.stringify(error, null, 4) });
+            if (error instanceof Error)
+                error = error.message;
+            else if (typeof error !== 'string')
+                error = JSON.stringify(error, null, 4);
+
+            dialog.showMessageBox(null, { type: 'error', title: 'Steam Gyro encountered a fatal error!', message: 'Error! See error log for details.', icon: iconPng, detail: error });
         } catch (error) {
-            dialog.showMessageBox(null, { type: 'error', title: 'Steam Gyro encountered a fatal error!', message: 'Error! See error log for details.', icon });
+            dialog.showMessageBox(null, { type: 'error', title: 'Steam Gyro encountered a fatal error!', message: 'Error! See error log for details.', icon: iconPng });
         }
     }
 

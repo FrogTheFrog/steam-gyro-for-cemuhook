@@ -34,6 +34,7 @@
     ]
   },
   "scripts": {
+    "start": "./node_modules/.bin/electron ./dist/main.bundle.js",
     "watch": "webpack --watch",
     "build": "cross-env NODE_ENV=production webpack",
     "build:renderer": "cross-env NODE_ENV=production webpack --config ./webpack/renderer.js",

@@ -16,7 +16,7 @@ Make sure that Steam Controller configuration has gyro disabled in places where 
 
 ## How to use
 
-Drag executable anywhere you want and launch it. Since version 1.0.1 you **should** (Windows might sometimes decide not to show it) see similar notification if everything started successfully:
+Drag executable anywhere you want and launch it. Since version 1.0.1 you **should** see (Windows might sometimes decide not to show it) similar notification if everything started successfully:
 
 ![notification-example](./assets/notification-example.png "Notification example")
 

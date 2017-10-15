@@ -3,8 +3,12 @@
 ## Requirements
 
 * Cemu emulator.
-* Cemehook with motion source support.
+* Cemuhook with motion source support.
 * **Turned on** Steam Controller.
+
+## Download
+
+Download release [here](https://github.com/FrogTheFrog/steam-gyro-for-cemuhook/releases)
 
 ## Before playing  
 
@@ -23,10 +27,6 @@ Finally, go to Cemu and make sure motion source is selected.
 ## Resetting position
 
 If you leave Steam Controller motionless, after a few seconds Cemuhook will reset it's position to default position. Basically, place controller in front of your screen if it's not moving in the direction you want and wait.
-
-## Multiple controllers support
-
-Theoretically it should support multiple controllers on a single dongle, however I had no way to test that.
 
 ## Icon
 

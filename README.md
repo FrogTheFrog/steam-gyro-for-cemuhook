@@ -8,7 +8,7 @@
 
 ## Download
 
-Download release [here](https://github.com/FrogTheFrog/steam-gyro-for-cemuhook/releases)
+Download release [here](https://github.com/FrogTheFrog/steam-gyro-for-cemuhook/releases).
 
 ## Before playing  
 

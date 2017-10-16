@@ -57,6 +57,12 @@ export namespace SteamController {
         Connected = 0x02
     }
 
+    export const scales = {
+        accelerometer: 1 / 16384.0,
+        gyro: 2000.0 / 32768.0,
+        quaternion: 1 / 32768.0
+    };
+
     export interface Report {
         id: number,
         packetCounter: number,
@@ -102,7 +108,7 @@ export namespace SteamController {
             leftPad: { x: number, y: number },
             rightPad: { x: number, y: number }
         },
-        acceleration: {
+        accelerometer: {
             x: number,
             y: number,
             z: number
@@ -166,7 +172,7 @@ export namespace SteamController {
                 leftPad: { x: 0, y: 0 },
                 rightPad: { x: 0, y: 0 }
             },
-            acceleration: {
+            accelerometer: {
                 x: 0,
                 y: 0,
                 z: 0,
@@ -189,10 +195,17 @@ export namespace SteamController {
         private handlingData = false;
         private reports = new Map<number, Report>();
         private steamDevice: HID;
-        private scales = {
-            acceleration: 1 / 16384.0,
-            gyro: 2000.0 / 32768.0,
-            quaternion: 1 / 32768.0
+        private postScalers = {
+            gyro: {
+                x: 1,
+                y: 1,
+                z: 1
+            },
+            accelerometer: {
+                x: 1,
+                y: 1,
+                z: 1
+            }
         };
         private motionSensors = {
             accelerometer: true,
@@ -211,7 +224,7 @@ export namespace SteamController {
                     device.usagePage === 0xFF00
                 ).sort((a, b) => a.interface > b.interface ? 1 : 0);
 
-                if (devices.length > 0){
+                if (devices.length > 0) {
                     let device = undefined;
                     for (let i = 0; i < devices.length; i++) {
                         device = new HID(devices[i].path);
@@ -230,7 +243,7 @@ export namespace SteamController {
                         device.usagePage === 0xFF00
                     ).sort((a, b) => a.interface > b.interface ? 1 : 0);
 
-                    if (devices.length > 0){
+                    if (devices.length > 0) {
                         let device = undefined;
                         for (let i = 0; i < devices.length; i++) {
                             device = new HID(devices[i].path);
@@ -258,6 +271,13 @@ export namespace SteamController {
             }
 
             return false;
+        }
+
+        setPostScalers(scalers: { gyro?: { x: number, y: number, z: number }, accelerometer?: { x: number, y: number, z: number } }) {
+            if (scalers.gyro != undefined)
+                this.postScalers.gyro = scalers.gyro;
+            if (scalers.accelerometer != undefined)
+                this.postScalers.accelerometer = scalers.accelerometer;
         }
 
         isValid() {
@@ -300,7 +320,7 @@ export namespace SteamController {
             }
         }
 
-        playMelody(id: number){ // id range [0x00; 0x0F]
+        playMelody(id: number) { // id range [0x00; 0x0F]
             if (this.isValid()) {
                 let featureArray = new FeatureArray(0xB6);
                 featureArray.setUint8(id & 0x0F, 0).setUint8(0, 0);
@@ -431,27 +451,27 @@ export namespace SteamController {
 
                     index += 4; //padding
 
-                    report.acceleration.x = data.readInt16LE(index, true) * this.scales.acceleration;
+                    report.accelerometer.x = data.readInt16LE(index, true) * scales.accelerometer * this.postScalers.accelerometer.x;
                     index += 2;
-                    report.acceleration.y = data.readInt16LE(index, true) * this.scales.acceleration;
+                    report.accelerometer.y = data.readInt16LE(index, true) * scales.accelerometer * this.postScalers.accelerometer.y;
                     index += 2;
-                    report.acceleration.z = data.readInt16LE(index, true) * this.scales.acceleration;
-                    index += 2;
-
-                    report.gyro.x = data.readInt16LE(index, true) * this.scales.gyro;
-                    index += 2;
-                    report.gyro.y = data.readInt16LE(index, true) * this.scales.gyro;
-                    index += 2;
-                    report.gyro.z = data.readInt16LE(index, true) * this.scales.gyro;
+                    report.accelerometer.z = data.readInt16LE(index, true) * scales.accelerometer * this.postScalers.accelerometer.z;
                     index += 2;
 
-                    report.quaternion.x = data.readInt16LE(index, true) * this.scales.quaternion;
+                    report.gyro.x = data.readInt16LE(index, true) * scales.gyro * this.postScalers.gyro.x;
                     index += 2;
-                    report.quaternion.y = data.readInt16LE(index, true) * this.scales.quaternion;
+                    report.gyro.y = data.readInt16LE(index, true) * scales.gyro * this.postScalers.gyro.y;
                     index += 2;
-                    report.quaternion.z = data.readInt16LE(index, true) * this.scales.quaternion;
+                    report.gyro.z = data.readInt16LE(index, true) * scales.gyro * this.postScalers.gyro.z;
                     index += 2;
-                    report.quaternion.w = data.readInt16LE(index, true) * this.scales.quaternion;
+
+                    report.quaternion.x = data.readInt16LE(index, true) * scales.quaternion;
+                    index += 2;
+                    report.quaternion.y = data.readInt16LE(index, true) * scales.quaternion;
+                    index += 2;
+                    report.quaternion.z = data.readInt16LE(index, true) * scales.quaternion;
+                    index += 2;
+                    report.quaternion.w = data.readInt16LE(index, true) * scales.quaternion;
                 }
                 else if (event === HidEvent.ConnectionUpdate) {
                     let connection = data[index];
@@ -490,7 +510,7 @@ export namespace SteamController {
                 }
 
                 if (event === HidEvent.DataUpdate) {
-                    let enableData = this.motionSensors.accelerometer && report.acceleration.x === 0 && report.acceleration.y === 0 && report.acceleration.z === 0;
+                    let enableData = this.motionSensors.accelerometer && report.accelerometer.x === 0 && report.accelerometer.y === 0 && report.accelerometer.z === 0;
                     enableData = enableData || this.motionSensors.gyro && report.gyro.x === 0 && report.gyro.y === 0 && report.gyro.z === 0;
                     enableData = enableData || this.motionSensors.quaternion && report.quaternion.x === 0 && report.quaternion.y === 0 && report.quaternion.z === 0;
 
@@ -536,10 +556,10 @@ export namespace SteamController {
                     R2: report.trigger.LEFT,
                     L2: report.trigger.RIGHT
                 },
-                acceleration: {
-                    x: -report.acceleration.x,
-                    y: -report.acceleration.z,
-                    z: report.acceleration.y
+                accelerometer: {
+                    x: -report.accelerometer.x,
+                    y: -report.accelerometer.z,
+                    z: report.accelerometer.y
                 },
                 gyro: {
                     x: report.gyro.x,

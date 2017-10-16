@@ -20,7 +20,21 @@ let validationFn = ajv.compile(require('./settings.schema.json'));
 // Start, restart server
 let startServer = () => {
     let userSettingsFile = path.join(userDataDir, 'steam-gyro.json');
-    readJson(userSettingsFile, { server: '127.0.0.1', port: 26760 }).then((data) => {
+    readJson(userSettingsFile, {
+        server: '127.0.0.1',
+        port: 26760,
+        postScalers: {
+            gyro: {
+                x: 1,
+                y: 1,
+                z: 1
+            }, accelerometer: {
+                x: 1,
+                y: 1,
+                z: 1
+            }
+        }
+    }).then((data) => {
         validationFn(data);
         if (validationFn.errors && validationFn.errors.length > 0)
             throw validationFn.errors;
@@ -40,6 +54,7 @@ let startServer = () => {
         return new Promise<{ server: string, port: number }>((resolve, reject) => {
             try {
                 server.start(data.port, data.server, () => {
+                    controller.setPostScalers(data.postScalers);
                     server.removeController();
                     server.addController(controller);
                     resolve(data);

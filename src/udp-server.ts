@@ -392,11 +392,11 @@ export namespace UdpServer {
                         outBuffer.writeUInt32LE(report.motionTimestamp.high, outIndex, true);
                         outIndex += 4;
 
-                        outBuffer.writeFloatLE(report.acceleration.x, outIndex, true);
+                        outBuffer.writeFloatLE(report.accelerometer.x, outIndex, true);
                         outIndex += 4;
-                        outBuffer.writeFloatLE(report.acceleration.y, outIndex, true);
+                        outBuffer.writeFloatLE(report.accelerometer.y, outIndex, true);
                         outIndex += 4;
-                        outBuffer.writeFloatLE(report.acceleration.z, outIndex, true);
+                        outBuffer.writeFloatLE(report.accelerometer.z, outIndex, true);
                         outIndex += 4;
 
                         outBuffer.writeFloatLE(report.gyro.x, outIndex, true);

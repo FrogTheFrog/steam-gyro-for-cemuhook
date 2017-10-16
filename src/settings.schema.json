@@ -1,13 +1,55 @@
 {
     "type": "object",
-    "properties": { 
+    "properties": {
         "server": {
             "type": "string",
             "default": "127.0.0.1"
-        }, 
+        },
         "port": {
             "type": "number",
             "default": 26760
+        },
+        "postScalers": {
+            "default": {},
+            "type": "object",
+            "properties": {
+                "gyro": {
+                    "default": {},
+                    "type": "object",
+                    "properties": {
+                        "x": {
+                            "type": "number",
+                            "default": 1
+                        },
+                        "y": {
+                            "type": "number",
+                            "default": 1
+                        },
+                        "z": {
+                            "type": "number",
+                            "default": 1
+                        }
+                    }
+                },
+                "accelerometer": {
+                    "default": {},
+                    "type": "object",
+                    "properties": {
+                        "x": {
+                            "type": "number",
+                            "default": 1
+                        },
+                        "y": {
+                            "type": "number",
+                            "default": 1
+                        },
+                        "z": {
+                            "type": "number",
+                            "default": 1
+                        }
+                    }
+                }
+            }
         }
     }
 }

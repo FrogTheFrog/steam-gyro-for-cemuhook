@@ -77,7 +77,7 @@ export namespace DualShock {
             L2: number,
             R2: number
         },
-        acceleration: {
+        accelerometer: {
             x: number,
             y: number,
             z: number

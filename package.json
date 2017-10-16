@@ -2,7 +2,7 @@
   "name": "steam-gyro-for-cemuhook",
   "description": "App to add Steam Controller's motion support to Cemuhook",
   "authors": "FrogTheFrog",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "./dist/main.bundle.js",
   "author": {
     "name": "FrogTheFrog",

@@ -37,10 +37,18 @@ let startServer = () => {
         if (!controller.connect())
             throw new Error('failed to connect to Steam Controller (not found, make sure it is enabled)');
 
-        server.start(data.port, data.server);
-        server.removeController();
-        server.addController(controller);
-
+        return new Promise<{ server: string, port: number }>((resolve, reject) => {
+            try {
+                server.start(data.port, data.server, () => {
+                    server.removeController();
+                    server.addController(controller);
+                    resolve(data);
+                });
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }).then((data) => {
         tray.displayBalloon({ title: 'UDP server started', content: `Running@${data.server}:${data.port}`, icon: iconPng });
         tray.setToolTip(`Server@${data.server}:${data.port}`);
     }).catch((error) => {

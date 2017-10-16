@@ -77,10 +77,12 @@ export namespace UdpServer {
                     break;
             }
         };
+
         private errorCallback(err: Error, fatal: boolean = true) {
             if (err.message === "could not read from HID device") {
                 this.removeController();
             }
+
             this.dispatchEvent('error', err, fatal);
         }
 
@@ -96,10 +98,10 @@ export namespace UdpServer {
             this.stop();
             this.socket = dgram.createSocket('udp4');
 
-            this.socket.on('error', this.errorCallback);
+            this.socket.on('error', (error) => this.errorCallback(error, true));
             this.socket.on('message', this.onMessage.bind(this));
 
-            this.socket.bind(port, address, callback);
+            this.socket.bind(port, address, callback);            
         }
 
         addController(controller: DualShock.Interface) {

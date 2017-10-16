@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.0.3 - 2017-10-17
+
+### Added
+- Post scaler were added for gyro and accelerometer. Once the settings file is created, you change those values to whatever you want. Can be used to increase or decrease sensitivity, however might also cause drifts.
+
 ## 1.0.2 - 2017-10-16
 
 ### Fixed

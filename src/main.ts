@@ -7,6 +7,23 @@ import * as winston from "winston";
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
+interface userSettings{
+    server: string,
+    port: number,
+    useAddressIfUsedByOtherProcess: boolean,
+    postScalers: {
+        gyro: {
+            x: number,
+            y: number,
+            z: number
+        }, accelerometer: {
+            x: number,
+            y: number,
+            z: number
+        }
+    }
+}
+
 let tray: Tray = null;
 let contextMenu: Menu = null;
 let userDataDir: string = process.env.PORTABLE_EXECUTABLE_DIR || '';
@@ -20,21 +37,7 @@ let validationFn = ajv.compile(require('./settings.schema.json'));
 // Start, restart server
 let startServer = () => {
     let userSettingsFile = path.join(userDataDir, 'steam-gyro.json');
-    readJson(userSettingsFile, {
-        server: '127.0.0.1',
-        port: 26760,
-        postScalers: {
-            gyro: {
-                x: 1,
-                y: 1,
-                z: 1
-            }, accelerometer: {
-                x: 1,
-                y: 1,
-                z: 1
-            }
-        }
-    }).then((data) => {
+    readJson(userSettingsFile, {}).then((data: userSettings) => {
         validationFn(data);
         if (validationFn.errors && validationFn.errors.length > 0)
             throw validationFn.errors;
@@ -58,7 +61,7 @@ let startServer = () => {
                     server.removeController();
                     server.addController(controller);
                     resolve(data);
-                });
+                }, data.useAddressIfUsedByOtherProcess);
             } catch (error) {
                 reject(error);
             }
@@ -96,10 +99,10 @@ let exitApp = (error?: any) => {
 }
 
 // Check if this app is already running and quit if it is
-const isSecondInstance = app.makeSingleInstance(() => { });
+/* const isSecondInstance = app.makeSingleInstance(() => { });
 if (isSecondInstance) {
     app.quit();
-}
+} */
 
 // Add filepath to winston logger
 winston.add(winston.transports.File, { filename: path.join(userDataDir, 'steam-gyro-errors.log'), prettyPrint: true, json: false });

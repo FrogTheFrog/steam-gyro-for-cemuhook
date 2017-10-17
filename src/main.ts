@@ -61,7 +61,7 @@ let startServer = () => {
                     server.removeController();
                     server.addController(controller);
                     resolve(data);
-                }, data.useAddressIfUsedByOtherProcess);
+                });
             } catch (error) {
                 reject(error);
             }

@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.0.4 - 2017-10-20
+
+### Fixed
+- Incorrect stick and right pad value ranges. `int16_t` values are now properly remapped to `uint8_t` values. Fixes #1 issue.
+
 ## 1.0.3 - 2017-10-17
 
 ### Added

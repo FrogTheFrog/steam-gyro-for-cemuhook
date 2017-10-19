@@ -522,6 +522,10 @@ export namespace SteamController {
             }
         }
 
+        private positionToDS_Position(int16_value: number){
+            return Math.floor((int16_value + 32768) * 255 / 65535);
+        }
+
         private reportToDS_Report(report: Report): DualShock.Report {
             return {
                 packetCounter: report.packetCounter,
@@ -549,8 +553,8 @@ export namespace SteamController {
                     touch: false
                 },
                 position: {
-                    left: { x: report.position.stick.x, y: report.position.stick.y },
-                    right: { x: report.position.rightPad.x, y: report.position.rightPad.x }
+                    left: { x: this.positionToDS_Position(report.position.stick.x), y: this.positionToDS_Position(report.position.stick.y) },
+                    right: { x: this.positionToDS_Position(report.position.rightPad.x), y: this.positionToDS_Position(report.position.rightPad.y) }
                 },
                 trigger: {
                     R2: report.trigger.LEFT,

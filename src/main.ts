@@ -1,15 +1,16 @@
 import { app, Menu, Tray, dialog, nativeImage } from 'electron';
-import { UdpServer } from './udp-server';
-import { SteamController } from "./steam-controller";
-import { readJson, writeJson } from "./json-helpers";
+import { UdpServer } from './lib/udp-server';
+import { SteamController } from "./lib/steam-controller";
+import { readJson, writeJson } from "./lib/json-helpers";
 import * as Ajv from 'ajv';
 import * as winston from "winston";
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
-interface userSettings{
+interface userSettings {
     server: string,
     port: number,
+    silentErrors: boolean,
     useAddressIfUsedByOtherProcess: boolean,
     postScalers: {
         gyro: {
@@ -32,7 +33,8 @@ let iconPng: nativeImage = nativeImage.createFromBuffer(icon.toPNG());
 let server = new UdpServer.Interface();
 let controller = new SteamController.Interface();
 let ajv = new Ajv({ removeAdditional: 'all', useDefaults: true });
-let validationFn = ajv.compile(require('./settings.schema.json'));
+let validationFn = ajv.compile(require('./lib/settings.schema.json'));
+let silentErrors = false;
 
 // Start, restart server
 let startServer = () => {
@@ -48,6 +50,9 @@ let startServer = () => {
             return data;
         else
             throw new Error(`Invalid IPv4 address: ${data.server}.`);
+    }).then((data) => {
+        silentErrors = data.silentErrors;
+        return data;
     }).then((data) => {
         return writeJson(userSettingsFile, data).then(() => data);
     }).then((data) => {
@@ -82,10 +87,10 @@ let exitApp = (error?: any) => {
     server.removeController();
     controller.disconnect();
 
-    if (error != undefined) {
+    if (error != undefined && !silentErrors) {
         try {
             if (error instanceof Error)
-                error = error.message;
+                error = `Error: ${error.message}`;
             else if (typeof error !== 'string')
                 error = JSON.stringify(error, null, 4);
 
@@ -99,10 +104,10 @@ let exitApp = (error?: any) => {
 }
 
 // Check if this app is already running and quit if it is
-/* const isSecondInstance = app.makeSingleInstance(() => { });
+const isSecondInstance = app.makeSingleInstance(() => { });
 if (isSecondInstance) {
     app.quit();
-} */
+}
 
 // Add filepath to winston logger
 winston.add(winston.transports.File, { filename: path.join(userDataDir, 'steam-gyro-errors.log'), prettyPrint: true, json: false });

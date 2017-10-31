@@ -252,5 +252,3 @@ export namespace SteamDevice {
         }
     }
 }
-
-SteamDevice.SteamDevice.startMonitoring();

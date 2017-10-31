@@ -30,11 +30,15 @@ let contextMenu: Menu = null;
 let userDataDir: string = process.env.PORTABLE_EXECUTABLE_DIR || '';
 let icon: nativeImage = nativeImage.createFromPath(path.join(__dirname, require('../assets/icon.ico')));
 let iconPng: nativeImage = nativeImage.createFromBuffer(icon.toPNG());
-let server = new UdpServer.Interface();
-let controller = new SteamController.Interface();
+
 let ajv = new Ajv({ removeAdditional: 'all', useDefaults: true });
 let validationFn = ajv.compile(require('./lib/settings.schema.json'));
 let silentErrors = false;
+
+let server = new UdpServer.UdpServer();
+let controller = new SteamController.SteamController().startWatching(true);
+
+server.addController(controller);
 
 // Start, restart server
 let startServer = () => {
@@ -56,15 +60,10 @@ let startServer = () => {
     }).then((data) => {
         return writeJson(userSettingsFile, data).then(() => data);
     }).then((data) => {
-        if (!controller.connect())
-            throw new Error('failed to connect to Steam Controller (not found, make sure it is enabled)');
-
         return new Promise<{ server: string, port: number }>((resolve, reject) => {
             try {
                 server.start(data.port, data.server, () => {
                     controller.setPostScalers(data.postScalers);
-                    server.removeController();
-                    server.addController(controller);
                     resolve(data);
                 });
             } catch (error) {
@@ -85,7 +84,7 @@ let startServer = () => {
 let exitApp = (error?: any) => {
     server.stop();
     server.removeController();
-    controller.disconnect();
+    controller.stopWatching();
 
     if (error != undefined && !silentErrors) {
         try {
@@ -113,12 +112,12 @@ if (isSecondInstance) {
 winston.add(winston.transports.File, { filename: path.join(userDataDir, 'steam-gyro-errors.log'), prettyPrint: true, json: false });
 
 // Add necessary events
-server.addEventListener('error', (event: string, error: any, fatal: boolean) => {
-    if (fatal)
+server.on('error', (data) => {
+    if (data.fatal)
         winston.error('FATAL ERROR!');
-    winston.error(error);
-    if (fatal)
-        exitApp(error);
+    winston.error(data.error as any);
+    if (data.fatal)
+        exitApp(data.error);
 });
 
 // Start app

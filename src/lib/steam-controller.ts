@@ -1,5 +1,5 @@
-import { HID, devices as hidDevices } from "node-hid";
-import { EventListener } from "./event-listener";
+import { HID, devices as hidDevices, Device as HidDevice } from "node-hid";
+import { SteamDevice } from "./steam-device"
 import { DualShock } from "./dualshock";
 import * as microtime from "microtime";
 import * as long from "long";
@@ -16,40 +16,14 @@ enum HidEvent {
     BatteryUpdate = 0x0b04
 }
 
-class FeatureArray {
-    dataLength: number = 0;
-    data = new Buffer(62).fill(0);
-
-    constructor(private featureId: number = 0x87) { }
-
-    get array(): number[] {
-        return [].concat([this.featureId, this.featureId, this.dataLength], ...this.data);
-    }
-
-    setUint8(setting: number, value: number) {
-        this.data[this.dataLength] = setting & 0xFF;
-        this.data.writeUInt8(value, this.dataLength + 1);
-        this.dataLength += 2;
-        return this;
-    }
-
-    setUint16(setting: number, value: number) {
-        this.data[this.dataLength] = setting & 0xFF;
-        this.data.writeUInt16LE(value, this.dataLength + 1);
-        this.dataLength += 3;
-        return this;
-    }
-
-    setUint32(setting: number, value: number) {
-        this.data[this.dataLength] = setting & 0xFF;
-        this.data.writeUInt32LE(value, this.dataLength + 1);
-        this.dataLength += 5;
-        return this;
-    }
-}
-
 export namespace SteamController {
-    export type InterfaceEvents = 'SC_ReportUpdate' | 'SC_Report' | DualShock.InterfaceEvents;
+    export interface Events extends DualShock.Events {
+        open: { type: SteamDevice.Item['type'], info: SteamDevice.Item['info'] };
+        connected: { type: SteamDevice.Item['type'], info: SteamDevice.Item['info'] };
+        disconnected: { type: SteamDevice.Item['type'], info: SteamDevice.Item['info'] };
+        SC_ReportByRef: Report;
+        SC_Report: Report;
+    }
 
     export enum State {
         Disconnected = 0x00,
@@ -64,7 +38,6 @@ export namespace SteamController {
     };
 
     export interface Report {
-        id: number,
         packetCounter: number,
         battery: number,
         timestamp: number,
@@ -128,7 +101,6 @@ export namespace SteamController {
 
     export function emptySteamControllerReport(): Report {
         return {
-            id: undefined,
             packetCounter: 0,
             battery: 0,
             timestamp: 0,
@@ -191,10 +163,10 @@ export namespace SteamController {
         }
     }
 
-    export class Interface extends DualShock.Interface {
+    export class SteamController extends DualShock.DualShockGenericController<Events> {
         private handlingData = false;
-        private reports = new Map<number, Report>();
-        private steamDevice: HID;
+        private report = emptySteamControllerReport();
+        private steamDevice: SteamDevice.SteamDevice;
         private postScalers = {
             gyro: {
                 x: 1,
@@ -213,64 +185,80 @@ export namespace SteamController {
             quaternion: true
         };
         private connectionTimestamp: number = 0;
+        private closeOnDisconnect: boolean = false;
+        private watcher = {
+            activeOnly: false,
+            timeoutObject: undefined as NodeJS.Timer,
+            isWatching: false
+        }
+        private watcherCallback = () => {
+            if (this.watcher.timeoutObject !== undefined) {
+                clearTimeout(this.watcher.timeoutObject);
+                this.watcher.timeoutObject = undefined;
+            }
 
-        connect(hidDevice?: HID) {
-            this.disconnect();
+            if (this.watcher.isWatching && !this.open(this.watcher.activeOnly).isOpen()) {
+                this.watcher.timeoutObject = global.setTimeout(this.watcherCallback.bind(this), 1000);
+            }
+        }
 
-            if (hidDevice == undefined) {
-                let devices = hidDevices().filter(device =>
-                    device.productId === 0x1142 && device.vendorId === 0x28DE &&
-                    device.interface > 0 && device.interface < 5 &&
-                    device.usagePage === 0xFF00
-                ).sort((a, b) => a.interface > b.interface ? 1 : 0);
+        open(activeOnly: boolean = false) {
+            if (!this.isOpen()) {
+                this.steamDevice = SteamDevice.SteamDevice.getAvailableDevice(activeOnly);
 
-                if (devices.length > 0) {
-                    let device = undefined;
-                    for (let i = 0; i < devices.length; i++) {
-                        device = new HID(devices[i].path);
-                        let data = device.readTimeout(1000);
-                        if (data.length > 0)
-                            break;
-                        else
-                            device = undefined;
-                    }
-                    hidDevice = device;
-                }
-                else {
-                    devices = hidDevices().filter(device =>
-                        device.productId === 0x1102 && device.vendorId === 0x28DE &&
-                        device.interface > 0 && device.interface < 5 &&
-                        device.usagePage === 0xFF00
-                    ).sort((a, b) => a.interface > b.interface ? 1 : 0);
+                if (this.isOpen()) {
+                    this.connectionTimestamp = microtime.now();
 
-                    if (devices.length > 0) {
-                        let device = undefined;
-                        for (let i = 0; i < devices.length; i++) {
-                            device = new HID(devices[i].path);
-                            let data = device.readTimeout(1000);
-                            if (data.length > 0)
-                                break;
-                            else
-                                device = undefined;
-                        }
-                        hidDevice = device;
-                    }
+                    this.steamDevice.hid.on('data', this.handleData.bind(this));
+                    this.steamDevice.hid.on("error", this.errorCallback.bind(this));
+                    this.steamDevice.hid.on('closed', this.close.bind(this));
+                    this.steamDevice.once('removed', this.close.bind(this));
+
+                    this.emit('open', { type: this.steamDevice.type, info: this.steamDevice.info });
                 }
             }
 
-            this.steamDevice = hidDevice;
+            return this;
+        }
 
-            if (this.isValid()) {
-                this.connectionTimestamp = microtime.now();
+        isOpen() {
+            return this.steamDevice !== undefined;
+        }
 
-                this.steamDevice.on('data', this.handleData.bind(this));
-                this.steamDevice.on("error", this.errorCallback.bind(this));
-                this.steamDevice.on('closed', this.disconnect.bind(this));
+        close() {
+            if (this.isOpen()) {
+                this.steamDevice.free();
+                this.steamDevice = undefined;
+                this.report.state = State.Disconnected;
 
-                return true;
+                this.emit('close', void 0);
             }
 
-            return false;
+            return this;
+        }
+
+        closeOnWirelessDisconnect(close: boolean) {
+            this.closeOnDisconnect = close;
+            return this;
+        }
+
+        startWatching(activeOnly: boolean = false) {
+            this.watcher.activeOnly = activeOnly;
+            if (!this.watcher.isWatching) {
+                this.watcher.isWatching = true;
+                SteamDevice.SteamDevice.onListChange(this.watcherCallback);
+                SteamDevice.SteamDevice.startMonitoring();
+                this.watcherCallback();
+            }
+            return this;
+        }
+
+        stopWatching() {
+            if (this.watcher.isWatching) {
+                this.watcher.isWatching = false;
+                SteamDevice.SteamDevice.stopMonitoring();
+            }
+            return this;
         }
 
         setPostScalers(scalers: { gyro?: { x: number, y: number, z: number }, accelerometer?: { x: number, y: number, z: number } }) {
@@ -280,34 +268,22 @@ export namespace SteamController {
                 this.postScalers.accelerometer = scalers.accelerometer;
         }
 
-        isValid() {
-            return this.steamDevice !== undefined;
-        }
-
-        disconnect() {
-            if (this.isValid()) {
-                let device = this.steamDevice;
-                this.steamDevice = undefined;
-                device.close();
-            }
-        }
-
         setHomeButtonBrightness(percentage: number) {
-            if (this.isValid()) {
-                let featureArray = new FeatureArray().setUint16(0x2D, percentage < 0 ? 0 : (percentage > 100 ? 100 : Math.floor(percentage)));
-                this.steamDevice.sendFeatureReport(featureArray.array);
+            if (this.isOpen()) {
+                let featureArray = new SteamDevice.FeatureArray().setUint16(0x2D, percentage < 0 ? 0 : (percentage > 100 ? 100 : Math.floor(percentage)));
+                this.steamDevice.hid.sendFeatureReport(featureArray.array);
             }
         }
 
         enableOrientationData(settings?: { gyro?: boolean, accelerometer?: boolean, quaternion?: boolean }) {
-            if (this.isValid()) {
+            if (this.isOpen()) {
                 if (settings !== undefined) {
                     this.motionSensors.gyro = settings.gyro;
                     this.motionSensors.accelerometer = settings.accelerometer;
                     this.motionSensors.quaternion = settings.quaternion;
                 }
 
-                let featureArray = new FeatureArray();
+                let featureArray = new SteamDevice.FeatureArray();
                 let value: number = 0;
                 if (this.motionSensors.gyro)
                     value |= 0x10;
@@ -316,47 +292,36 @@ export namespace SteamController {
                 if (this.motionSensors.quaternion)
                     value |= 0x04;
                 featureArray.setUint16(0x30, value);
-                this.steamDevice.sendFeatureReport(featureArray.array);
+                this.steamDevice.hid.sendFeatureReport(featureArray.array);
             }
         }
 
-        playMelody(id: number) { // id range [0x00; 0x0F]
-            if (this.isValid()) {
-                let featureArray = new FeatureArray(0xB6);
+        playMelody(id: number) { // id range [0x00; 0x0F], works when Steam is closed
+            if (this.isOpen()) {
+                let featureArray = new SteamDevice.FeatureArray(0xB6);
                 featureArray.setUint8(id & 0x0F, 0).setUint8(0, 0);
-                this.steamDevice.sendFeatureReport(featureArray.array);
+                this.steamDevice.hid.sendFeatureReport(featureArray.array);
             }
         }
 
-        getDualShockMeta(id: number) {
-            return this.reports.has(id) ? this.reportToDS_Meta(this.reports.get(id)) : undefined;
+        getDualShockMeta() {
+            return this.isOpen() ? this.reportToDS_Meta(this.report) : undefined;
         }
 
-        getDualShockReport(id: number) {
-            return this.reports.has(id) ? this.reportToDS_Report(this.reports.get(id)) : undefined;
+        getDualShockReport() {
+            return this.isOpen() ? this.reportToDS_Report(this.report) : undefined;
         }
 
         getSteamControllerReport(id: number) {
-            return this.reports.has(id) ? this.reports.get(id) : undefined;
-        }
-
-        addEventListener(event: InterfaceEvents, callback: (...data: any[]) => void) {
-            super.addEventListener(event as any, callback);
-        }
-
-        removeEventListener(event: InterfaceEvents, callback: (...data: any[]) => void) {
-            super.removeEventListener(event as any, callback);
-        }
-
-        hasListeners(event: InterfaceEvents) {
-            return super.hasListeners(event as any);
+            return this.isOpen() ? this.report : undefined;
         }
 
         private errorCallback(err: any) {
             if (err.message === "could not read from HID device") {
-                this.disconnect();
+                this.close();
             }
-            this.dispatchEvent('error', err);
+            else
+                this.emit('error', err);
         }
 
         private handleData(data: Buffer) {
@@ -364,18 +329,10 @@ export namespace SteamController {
             if (!this.handlingData) {
                 this.handlingData = true;
                 let updated = true;
-                let report: Report = undefined;
+                let report: Report = this.report;
                 let index = 0;
-                let id = data.readUInt16LE(index, true) - 1;
-                index += 2;
 
-                if (this.reports.has(id))
-                    report = this.reports.get(id);
-                else {
-                    this.reports.set(id, emptySteamControllerReport());
-                    report = this.reports.get(id);
-                    report.id = id;
-                }
+                index += 2; //skip reading id or something
 
                 let event = data.readUInt16LE(index, true);
                 index += 2;
@@ -475,10 +432,17 @@ export namespace SteamController {
                 }
                 else if (event === HidEvent.ConnectionUpdate) {
                     let connection = data[index];
-                    if (connection === 0x01)
+                    if (connection === 0x01) {
                         report.state = State.Disconnected;
-                    else if (connection === 0x02)
+                        if (this.closeOnDisconnect)
+                            this.close();
+                        else
+                            this.emit('disconnected', { type: this.steamDevice.type, info: this.steamDevice.info });
+                    }
+                    else if (connection === 0x02) {
                         report.state = State.Connected;
+                        this.emit('connected', { type: this.steamDevice.type, info: this.steamDevice.info });
+                    }
                     else if (connection === 0x03)
                         report.state = State.Pairing;
                 }
@@ -493,19 +457,19 @@ export namespace SteamController {
                     updated = false;
                 }
 
-                if (updated) {
+                if (updated && this.isOpen()) {
                     let clonedReport = undefined;
-                    if (this.hasListeners('DS_Report')) {
+                    if (this.listenerCount('DS_Report') > 0) {
                         if (clonedReport === undefined)
                             clonedReport = _.cloneDeep(report);
-                        this.dispatchEvent('DS_Report', this.reportToDS_Report(clonedReport), this.reportToDS_Meta(clonedReport));
+                        this.emit('DS_Report', { report: this.reportToDS_Report(clonedReport), meta: this.reportToDS_Meta(clonedReport) });
                     }
-                    if (this.hasListeners('SC_ReportUpdate')) {
-                        this.dispatchEvent('SC_ReportUpdate', report);
+                    if (this.listenerCount('SC_ReportByRef') > 0) {
+                        this.emit('SC_ReportByRef', report);
                     }
-                    if (this.hasListeners('SC_Report')) {
+                    if (this.listenerCount('SC_Report') > 0) {
                         clonedReport = _.cloneDeep(report);
-                        this.dispatchEvent('SC_Report', clonedReport);
+                        this.emit('SC_Report', clonedReport);
                     }
                 }
 
@@ -514,15 +478,18 @@ export namespace SteamController {
                     enableData = enableData || this.motionSensors.gyro && report.gyro.x === 0 && report.gyro.y === 0 && report.gyro.z === 0;
                     enableData = enableData || this.motionSensors.quaternion && report.quaternion.x === 0 && report.quaternion.y === 0 && report.quaternion.z === 0;
 
-                    if (enableData)
-                        this.enableOrientationData();
+                    if (enableData) {
+                        try {
+                            this.enableOrientationData();
+                        } catch (everything) { } // In case HID device is disconnected
+                    }
                 }
 
                 this.handlingData = false;
             }
         }
 
-        private positionToDS_Position(int16_value: number){
+        private positionToDS_Position(int16_value: number) {
             return Math.floor((int16_value + 32768) * 255 / 65535);
         }
 
@@ -587,14 +554,14 @@ export namespace SteamController {
             };
         }
 
-        private reportToDS_Meta(report: Report): DualShock.PadMeta {
+        private reportToDS_Meta(report: Report): DualShock.Meta {
             return {
                 batteryStatus: DualShock.Battery.None,
                 connectionType: DualShock.Connection.Usb,
                 isActive: microtime.now() - report.timestamp < 1000000,
                 macAddress: report.macAddress,
                 model: DualShock.Model.DS4,
-                padId: report.id,
+                padId: this.steamDevice.id,
                 state: report.state === State.Connected ? DualShock.State.Connected : DualShock.State.Disconnected
             }
         }

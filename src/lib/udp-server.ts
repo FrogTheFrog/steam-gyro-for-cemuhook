@@ -1,5 +1,5 @@
 import { DualShock } from "./dualshock";
-import { EventListener } from "./event-listener";
+import { TypedEventEmitter } from "./typed-event-emitter";
 import * as dgram from "dgram";
 import * as crc from "crc";
 import * as randomJS from "random-js";
@@ -51,6 +51,10 @@ export namespace UdpServer {
     export const maxProtocolVer: number = 1001;
     export const clientTimeoutLimit: number = 5000;
 
+    export interface Events {
+        error: { error: Error, fatal: boolean }
+    }
+
     export const enum MessageType {
         DSUC_VersionReq = 0x100000,
         DSUS_VersionRsp = 0x100000,
@@ -60,39 +64,11 @@ export namespace UdpServer {
         DSUS_PadDataRsp = 0x100002
     }
 
-    export class Interface extends EventListener {
+    export class UdpServer extends TypedEventEmitter<Events> {
         private socket: dgram.Socket = undefined;
         private serverId: number = randomJS().integer(0, 9007199254740992);
-        private controller: DualShock.Interface = null;
+        private controllers: DualShock.DualShockGenericController[] = new Array(4).fill(undefined);
         private clients = new Map<dgram.AddressInfo, ClientRequestTimes>();
-        private eventHandler = (event: string, ...data: any[]) => {
-            switch (event) {
-                case 'DS_Report':
-                    this.handleReport(data[0], data[1]);
-                    break;
-                case 'error':
-                    this.errorCallback(data[0], data[1]);
-                    break;
-                default:
-                    break;
-            }
-        };
-
-        private errorCallback(err: Error, fatal: boolean = true) {
-            if (err.message === "could not read from HID device") {
-                this.removeController();
-            }
-
-            this.dispatchEvent('error', err, fatal);
-        }
-
-        addEventListener(event: 'error', callback: (...data: any[]) => void) {
-            super.addEventListener(event, callback);
-        }
-
-        removeEventListener(event: 'error', callback: (...data: any[]) => void) {
-            super.removeEventListener(event, callback);
-        }
 
         start(port?: number, address?: string, callback?: () => void) {
             this.stop();
@@ -101,24 +77,48 @@ export namespace UdpServer {
             this.socket.on('error', (error) => this.errorCallback(error, true));
             this.socket.on('message', this.onMessage.bind(this));
 
-            this.socket.bind(port, address, callback);            
+            this.socket.bind(port, address, callback);
         }
 
-        addController(controller: DualShock.Interface) {
-            if (this.controller === null) {
-                this.controller = controller;
-                this.controller.addEventListener('error', this.eventHandler);
-                this.controller.addEventListener('DS_Report', this.eventHandler);
-                return true;
+        addController(controller: DualShock.DualShockGenericController, autoOpen: boolean = false) {
+            for (let i = 0; i < this.controllers.length; i++) {
+                if (this.controllers[i] === undefined) {
+                    this.controllers[i] = controller;
+                    this.controllers[i].on('error', this.errorCallback);
+                    this.controllers[i].on('DS_Report', this.handleReport);
+
+                    if (autoOpen)
+                        this.controllers[i].close
+
+                    return true;
+                }
             }
+
             return false;
         }
 
-        removeController() {
-            if (this.controller !== null) {
-                this.controller.removeEventListener('error', this.eventHandler);
-                this.controller.removeEventListener('DS_Report', this.eventHandler);
-                this.controller = null;
+        removeController(index?: number, autoClose: boolean = false) {
+            if (index !== undefined) {
+                for (let i = 0; i < this.controllers.length; i++) {
+                    if (this.controllers[i] !== undefined) {
+                        if (autoClose)
+                            this.controllers[i].close();
+
+                        this.controllers[i].removeListener('error', this.errorCallback);
+                        this.controllers[i].removeListener('DS_Report', this.handleReport);
+                        this.controllers[i] = undefined;
+                    }
+                }
+            }
+            else if (index > 0 && index < this.controllers.length) {
+                if (this.controllers[index] !== undefined) {
+                    if (autoClose)
+                        this.controllers[index].close();
+
+                    this.controllers[index].removeListener('error', this.errorCallback);
+                    this.controllers[index].removeListener('DS_Report', this.handleReport);
+                    this.controllers[index] = undefined;
+                }
             }
         }
 
@@ -129,7 +129,7 @@ export namespace UdpServer {
             }
         }
 
-        clearClients(){
+        clearClients() {
             this.clients.clear();
         }
 
@@ -237,10 +237,10 @@ export namespace UdpServer {
                         }
 
                         let outBuffer = Buffer.alloc(16);
-                        for (let i = 0; i < 1; i++) {
+                        for (let i = 0; i < numOfPadRequests; i++) {
                             let requestIndex = data[index + i];
 
-                            let meta = this.controller !== null ? _.cloneDeep(this.controller.getDualShockMeta(requestIndex)) : undefined;
+                            let meta = this.controllers[requestIndex] !== undefined ? this.controllers[requestIndex].getDualShockMeta() : undefined;
                             if (meta !== undefined) {
                                 outBuffer.writeUInt32LE(MessageType.DSUS_PortInfo, 0, true);
                                 let outIndex = 4;
@@ -295,12 +295,18 @@ export namespace UdpServer {
             }
         }
 
-        private handleReport(report: DualShock.Report, meta: DualShock.PadMeta) {
+        private errorCallback = (error: Error, fatal: boolean = true) => {
+            this.emit('error', { error, fatal });
+        }
+
+        private handleReport = (data: { report: DualShock.Report, meta: DualShock.Meta }) => {
             try {
                 if (this.socket !== undefined) {
+                    let meta = data.meta;
                     let clients = this.getClientsForReport(meta);
 
                     if (clients.length > 0) {
+                        let report = data.report;
                         let outBuffer = Buffer.alloc(100);
                         let outIndex = this.beginPacket(outBuffer, 1001);
                         outBuffer.writeUInt32LE(MessageType.DSUS_PadDataRsp, outIndex, true);
@@ -429,7 +435,7 @@ export namespace UdpServer {
             }
         }
 
-        private getClientsForReport(meta: DualShock.PadMeta) {
+        private getClientsForReport(meta: DualShock.Meta) {
             let clients: dgram.AddressInfo[] = [];
             let clientsToDelete: dgram.AddressInfo[] = [];
             let currentTime = Date.now();

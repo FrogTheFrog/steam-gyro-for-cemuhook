@@ -1,8 +1,13 @@
-import { EventListener } from "./event-listener";
+import { TypedEventEmitter } from "./typed-event-emitter";
 import * as long from "long";
 
 export namespace DualShock {
-    export type InterfaceEvents = 'removed' | 'DS_Report' | 'error';
+    export interface Events {
+        open: any;
+        close: void;
+        DS_Report: { report: Report, meta: Meta };
+        error: Error;
+    }
 
     export enum State {
         Disconnected = 0x00,
@@ -34,7 +39,7 @@ export namespace DualShock {
         Charged = 0xEF
     }
 
-    export interface PadMeta {
+    export interface Meta {
         padId: number,
         state: State,
         connectionType: Connection,
@@ -103,23 +108,11 @@ export namespace DualShock {
         }
     }
 
-    export abstract class Interface extends EventListener {
-        abstract connect(): boolean;
-        abstract disconnect();
-        abstract isValid(): boolean;
-        abstract getDualShockMeta(id: number): PadMeta;
-        abstract getDualShockReport(id: number): Report;
-
-        addEventListener(event: InterfaceEvents, callback: (...data: any[]) => void) {
-            super.addEventListener(event, callback);
-        }
-
-        removeEventListener(event: InterfaceEvents, callback: (...data: any[]) => void) {
-            super.removeEventListener(event, callback);
-        }
-
-        hasListeners(event: InterfaceEvents) {
-            return super.hasListeners(event);
-        }
+    export abstract class DualShockGenericController<OverrideEvents = Events> extends TypedEventEmitter<OverrideEvents> {
+        abstract open(): this;
+        abstract close(): this;
+        abstract isOpen(): boolean;
+        abstract getDualShockMeta(): Meta;
+        abstract getDualShockReport(): Report;
     }
 }

@@ -53,6 +53,7 @@
     "random-js": "^1.0.8",
     "random-mac": "0.0.4",
     "strip-bom": "^3.0.0",
+    "usb-detection": "^1.4.0",
     "winston": "^2.4.0"
   },
   "devDependencies": {

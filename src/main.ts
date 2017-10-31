@@ -84,7 +84,7 @@ let startServer = () => {
 let exitApp = (error?: any) => {
     server.stop();
     server.removeController();
-    controller.stopWatching();
+    controller.stopWatching().close();
 
     if (error != undefined && !silentErrors) {
         try {

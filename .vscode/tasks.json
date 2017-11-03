@@ -16,7 +16,14 @@
         },
         {
             "type": "npm",
-            "script": "watch",
+            "script": "watch:main",
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "type": "npm",
+            "script": "watch:renderer",
+            "isBackground": true,
             "problemMatcher": []
         }
     ]

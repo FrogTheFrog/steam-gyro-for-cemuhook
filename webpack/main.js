@@ -8,10 +8,10 @@ let clientConfig = {
     entry: {
         main: './main.ts'
     },
-    context: path.resolve(__dirname, 'src'),
+    context: path.resolve(__dirname, '..', 'src'),
     output: {
         filename: '[name].bundle.js',
-        path: path.resolve(__dirname, 'dist')
+        path: path.resolve(__dirname, '..', 'dist')
     },
     resolve: {
         extensions: ['.ts', '.js']
@@ -49,6 +49,11 @@ let developmentConfig = {
 };
 
 let productionConfig = {
+    plugins: [
+        new webpack.DefinePlugin({
+            'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV)
+        }),
+    ]
 };
 
 if (process.env.NODE_ENV === 'production')

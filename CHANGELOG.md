@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.1.0 - 2017-11-03
+
+### Added
+- Auto-detect feature. App will now watch for usb changes and will try to connect to the first active controller. You no longer need to have connected and active controller when launching this app.
+- A simple UI for editing settings in real time. Also allows to select different Steam Controller and observe its data stream.
+
 ## 1.0.5 - 2017-10-23
 
 ### Added

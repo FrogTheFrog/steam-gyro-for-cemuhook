@@ -1,0 +1,11 @@
+@import '~@angular/material/theming';
+
+$dark-theme-primary: mat-palette($mat-amber);
+$dark-theme-accent: mat-palette($mat-green, A200);
+$dark-theme-warn: mat-palette($mat-red, A200);
+$dark-theme: mat-dark-theme($dark-theme-primary, $dark-theme-accent, $dark-theme-warn);
+$theme-config: mat-typography-config();
+
+.dark-theme {
+    @include angular-material-theme($dark-theme);
+}

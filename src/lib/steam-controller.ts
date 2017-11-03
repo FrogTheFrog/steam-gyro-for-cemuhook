@@ -53,7 +53,7 @@ export namespace SteamController {
             X: boolean,
             A: boolean,
             previous: boolean,
-            home: boolean,
+            steam: boolean,
             next: boolean,
             dPad: {
                 UP: boolean,
@@ -116,7 +116,7 @@ export namespace SteamController {
                 X: false,
                 A: false,
                 previous: false,
-                home: false,
+                steam: false,
                 next: false,
                 dPad: {
                     UP: false,
@@ -190,23 +190,29 @@ export namespace SteamController {
             activeOnly: false,
             timeoutObject: undefined as NodeJS.Timer,
             isWatching: false
-        }
+        };
         private watcherCallback = () => {
             if (this.watcher.timeoutObject !== undefined) {
                 clearTimeout(this.watcher.timeoutObject);
                 this.watcher.timeoutObject = undefined;
             }
 
-            if (this.watcher.isWatching && !this.open(this.watcher.activeOnly).isOpen()) {
+            if (this.watcher.isWatching && !this.open({ activeOnly: this.watcher.activeOnly }).isOpen()) {
                 this.watcher.timeoutObject = global.setTimeout(this.watcherCallback.bind(this), 1000);
             }
         }
 
-        open(activeOnly: boolean = false) {
+        open(options?: { activeOnly?: boolean, autoClose?: boolean, devicePath?: string, newMAC?: boolean }) {
+            if (_.get(options, 'autoClose', false))
+                this.close();
+
             if (!this.isOpen()) {
-                this.steamDevice = SteamDevice.SteamDevice.getAvailableDevice(activeOnly);
+                this.steamDevice = SteamDevice.SteamDevice.getAvailableDevice(_.get(options, 'activeOnly', false), _.get(options, 'devicePath'));
 
                 if (this.isOpen()) {
+                    if (_.get(options, 'newMAC', false))
+                        this.report.macAddress = require('random-mac')();
+
                     this.connectionTimestamp = microtime.now();
 
                     this.steamDevice.hid.on('data', this.handleData.bind(this));
@@ -229,7 +235,10 @@ export namespace SteamController {
             if (this.isOpen()) {
                 this.steamDevice.free();
                 this.steamDevice = undefined;
-                this.report.state = State.Disconnected;
+
+                let mac =  this.report.macAddress;
+                this.report = emptySteamControllerReport();
+                this.report.macAddress = mac;
 
                 this.emit('close', void 0);
             }
@@ -360,7 +369,7 @@ export namespace SteamController {
                     report.button.dPad.LEFT = bool(buttonData & 0x04);
                     report.button.dPad.DOWN = bool(buttonData & 0x08);
                     report.button.previous = bool(buttonData & 0x10);
-                    report.button.home = bool(buttonData & 0x20);
+                    report.button.steam = bool(buttonData & 0x20);
                     report.button.next = bool(buttonData & 0x40);
                     report.button.grip.LEFT = bool(buttonData & 0x80);
 
@@ -504,7 +513,7 @@ export namespace SteamController {
                     L2: report.button.LT,
                     R3: report.button.rightPad,
                     L3: report.button.stick,
-                    PS: report.button.home,
+                    PS: report.button.steam,
                     SQUARE: report.button.X,
                     CROSS: report.button.A,
                     CIRCLE: report.button.B,

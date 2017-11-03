@@ -4,7 +4,7 @@
 
 * Cemu emulator.
 * Cemuhook with motion source support.
-* **Turned on** Steam Controller.
+* Steam Controller.
 
 ## Download
 
@@ -16,7 +16,7 @@ Make sure that Steam Controller configuration has gyro disabled in places where 
 
 ## How to use
 
-Drag executable anywhere you want and launch it. Since version 1.0.1 you **should** see (Windows might sometimes decide not to show it) similar notification if everything started successfully:
+Drag executable anywhere you want and launch it. You **should** see (Windows might sometimes decide not to show it) similar notification if everything started successfully:
 
 ![notification-example](./assets/notification-example.png "Notification example")
 
@@ -24,7 +24,13 @@ If you right click on tray icon it will allow you to restart server or exit. Mor
 
 ![tray-example](./assets/tray.png "Tray example")
 
-A settings file will be created in the same directory. If you want, you can change server adrress, port and click restart on tray.
+A settings file will be created in the same directory. If you want, you can change server adrress, port and click restart on tray. Or you can left-click on tray icon which will open a simple UI where you can edit settings in real time:
+
+![ui-settings](./assets/ui-settings.png "UI-settings example")
+
+UI also allows to connect to other Steam Controllers and observer their data stream:
+
+![ui-devices](./assets/ui-devices.png "UI-devices example")
 
 Finally, go to Cemu and make sure motion source is selected:
 

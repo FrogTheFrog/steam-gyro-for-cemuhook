@@ -1,16 +1,39 @@
 {
-        "version": "0.2.0",
-        "configurations": [
-            {
-                "type": "node",
-                "request": "launch",
-                "name": "Launch Program",
-                "program": "${workspaceRoot}/dist/main.bundle.js",
-                "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
-                "outFiles": [
-                    "${workspaceRoot}/dist/*.js"
-                ],
-                "args" : ["."]
-            }
-        ]
-    }
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Electron: Main",
+            "protocol": "inspector",
+            "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron",
+            "runtimeArgs": [
+                "--remote-debugging-port=9223",
+                "${workspaceRoot}/dist/main.bundle.js"
+            ],
+            "windows": {
+                "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron.cmd"
+            },
+            "outFiles": [
+                "${workspaceRoot}/dist/*.js"
+            ]
+        },
+        {
+            "name": "Electron: Renderer",
+            "type": "chrome",
+            "request": "attach",
+            "port": 9223,
+            "webRoot": "${workspaceRoot}/dist/renderer",
+            "timeout": 30000
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Electron: All",
+            "configurations": [
+                "Electron: Main",
+                "Electron: Renderer"
+            ]
+        }
+    ]
+}

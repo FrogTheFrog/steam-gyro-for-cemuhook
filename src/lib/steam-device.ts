@@ -4,10 +4,16 @@ import * as _ from "lodash";
 const usbDetect = require('usb-detection');
 
 export namespace SteamDevice {
-    export interface Item {
+    interface PrivateItem {
         info: HidDevice,
         type: 'wirelessConnected' | 'wirelessDisconnected' | 'wired',
         device: SteamDevice
+    }
+
+    export interface Item {
+        info: HidDevice,
+        type: 'wirelessConnected' | 'wirelessDisconnected' | 'wired' | null,
+        inUse: boolean | null
     }
 
     export interface Events {
@@ -46,12 +52,12 @@ export namespace SteamDevice {
         }
     }
 
-    export const VendorId = 0x28DE;
-    export const WirelessProductId = 0x1142;
-    export const WiredProductId = 0x1102;
+    export const VendorId: number = 0x28DE;
+    export const WirelessProductId: number = 0x1142;
+    export const WiredProductId: number = 0x1102;
 
     export class SteamDevice extends TypedEventEmitter<Events> {
-        private static itemList = new Map<string, Item>();
+        private static itemList = new Map<string, PrivateItem>();
         private static deviceList: HidDevice[] = undefined;
         private static takenIds: number[] = [];
         private static motoringCallCount: number = 0;
@@ -105,11 +111,11 @@ export namespace SteamDevice {
                     return a.interface > b.interface ? 1 : 0;
                 }
             });
-            let newItems = new Map<string, Item>();
-            let itemsToRemove = new Map<string, Item>(this.itemList);
+            let newItems = new Map<string, PrivateItem>();
+            let itemsToRemove = new Map<string, PrivateItem>(this.itemList);
             let filterDevices = (devices: HidDevice[], type: 'wirelessDisconnected' | 'wired') => {
                 for (let i = 0; i < devices.length; i++) {
-                    let remnantDevice: Item = undefined;
+                    let remnantDevice: PrivateItem = undefined;
 
                     if (itemsToRemove.has(devices[i].path)) {
                         remnantDevice = itemsToRemove.get(devices[i].path)
@@ -187,20 +193,36 @@ export namespace SteamDevice {
             this.staticEmitter.removeListener('listChange', callback);
         }
 
-        static getAvailableDevice(activeOnly: boolean = false) {
+        static getAvailableDevice(activeOnly: boolean = false, devicePath?: string) {
             if (activeOnly)
                 this.updateWirelessStatus();
 
+            let selectedItem: PrivateItem = undefined;
+
             for (let [path, item] of this.itemList) {
                 if (item.device === undefined) {
-                    if (activeOnly && item.type !== 'wirelessDisconnected') {
-                        item.device = new SteamDevice(path);
-                        return item.device;
+                    if (devicePath !== undefined) {
+                        if (devicePath === path) {
+                            if ((activeOnly && item.type !== 'wirelessDisconnected') || !activeOnly)
+                                selectedItem = item;
+                            break;
+                        }
+                    }
+                    else {
+                        if ((activeOnly && item.type !== 'wirelessDisconnected') || !activeOnly) {
+                            selectedItem = item;
+                            break;
+                        }
                     }
                 }
             }
 
-            return undefined;
+            if (selectedItem !== undefined) {
+                selectedItem.device = new SteamDevice(selectedItem.info.path);
+                return selectedItem.device;
+            }
+            else
+                return undefined;
         }
 
         static startMonitoring() {
@@ -217,8 +239,34 @@ export namespace SteamDevice {
             }
         }
 
-        static getList() {
-            return this.itemList;
+        static getItems(updateWirelessStatus: boolean = false) {
+            let items: Item[] = new Array(this.itemList.size);
+            let index: number = 0;
+
+            if (updateWirelessStatus)
+                this.updateWirelessStatus();
+
+            for (let [path, item] of this.itemList) {
+                items[index++] = { info: item.info, type: item.type, inUse: item.device !== undefined };
+            }
+
+            return items;
+        }
+
+        static getExcludedItems() {
+            let devices = this.getDevices({
+                filter: (device) => {
+                    return device.vendorId === VendorId && (device.productId !== WirelessProductId || device.productId !== WiredProductId) &&
+                        !(device.interface > 0 && device.interface < 5 && device.usagePage === 0xFF00)
+                }
+            });
+            let items: Item[] = new Array(devices.length);
+
+            for (let i = 0; i < devices.length; i++) {
+                items[i] = { info: devices[i], type: null, inUse: null };
+            }
+
+            return items;
         }
 
         private constructor(private devicePath: string) {

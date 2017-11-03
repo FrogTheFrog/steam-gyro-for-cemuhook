@@ -1,0 +1,29 @@
+@import '~@angular/material/theming';
+@import './theme.global.scss';
+
+$background: map-get($dark-theme, background);
+$foreground: map-get($dark-theme, foreground);
+
+:host {
+    display: grid;
+    justify-items: center;
+    align-items: center;
+
+    background-color: mat-color($background, background);
+
+    > mat-card{
+        width: 500px;
+
+        .icon{
+            background-size: cover;
+            margin-right: 0.25em;
+            background-image: url('../../../assets/icon.ico');
+            background-color: mat-color($foreground, secondary-text);
+            border-radius: 50%;
+        }
+
+        .secondary {
+            color: mat-color($foreground, secondary-text);
+        }
+    }
+}

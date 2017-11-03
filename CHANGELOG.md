@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.1.1 - 2017-11-03
+
+### Fixed
+- Could not close data stream if UI is restored in 10 seconds (before UI memory is freed).
+
 ## 1.1.0 - 2017-11-03
 
 ### Added

@@ -285,7 +285,8 @@ ipcMain.on('deviceOpenReq', (event: { preventDefault: () => void; sender: WebCon
 });
 
 let dataStreamCallback = (data: SteamController.Report) => {
-    rendererWindow.webContents.send('dataStream', data);
+    if (rendererWindow !== null)
+        rendererWindow.webContents.send('dataStream', data);
 }
 
 ipcMain.on('dataStreamStartReq', (event: { preventDefault: () => void; sender: WebContents; }) => {

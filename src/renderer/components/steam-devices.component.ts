@@ -10,7 +10,7 @@ import { SteamController } from "../../lib/steam-controller";
 @Component({
     selector: 'steam-devices',
     template: `
-        <div class="container" *ngVar="(items | async) as itemData">
+        <div class="container">
             <ng-container *ngIf="itemData.length > 0; else noData">
                 <div class="mat-table">
                     <div class="mat-header-row">
@@ -174,12 +174,17 @@ export class SteamDevicesComponent implements OnInit, OnDestroy {
     private intervalTimer: NodeJS.Timer = undefined;
     private waitForChange: boolean = false;
     private subscription: Subscription = new Subscription();
+    private itemData: SteamDevice.Item[] = [];
     private dataStream: SteamController.Report = SteamController.emptySteamControllerReport();
 
     constructor(private steamDevicesService: SteamDevicesService, private windowService: WindowService, private changeDetectorRef: ChangeDetectorRef) { }
 
     ngOnInit() {
         this.subscription.add(this.steamDevicesService.changed.subscribe(() => this.waitForChange = false));
+        this.subscription.add(this.steamDevicesService.items.subscribe((data) => {
+            this.itemData = data;
+            this.changeDetectorRef.detectChanges();
+        }));
         this.subscription.add(this.steamDevicesService.dataStream.subscribe((data) => {
             this.dataStream = data;
             this.changeDetectorRef.detectChanges();
@@ -196,10 +201,6 @@ export class SteamDevicesComponent implements OnInit, OnDestroy {
         }));
         this.startTimer();
         this.startDataStream();
-    }
-
-    get items() {
-        return this.steamDevicesService.items;
     }
 
     ngOnDestroy() {
@@ -228,20 +229,13 @@ export class SteamDevicesComponent implements OnInit, OnDestroy {
     private openDevice(devicePath: string) {
         this.waitForChange = true;
         ipcRenderer.send('deviceOpenReq', devicePath);
-        //this.resetDataStream();
     }
 
     private startDataStream() {
-        //this.resetDataStream();
         ipcRenderer.send('dataStreamStartReq');
     }
 
     private stopDataStream() {
         ipcRenderer.send('dataStreamStopReq');
-    }
-
-    private resetDataStream() {
-        this.dataStream = SteamController.emptySteamControllerReport();
-        this.changeDetectorRef.detectChanges();
     }
 }

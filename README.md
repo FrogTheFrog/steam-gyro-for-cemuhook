@@ -24,7 +24,7 @@ If you right click on tray icon it will allow you to restart server or exit. Mor
 
 ![tray-example](./assets/tray.png "Tray example")
 
-A settings file will be created in the same directory. If you want, you can change server adrress, port and click restart on tray. Or you can left-click on tray icon which will open a simple UI where you can edit settings in real time:
+A settings file will be created in the same directory. If you want, you can change server address, port and click restart on tray. Or you can left-click on tray icon which will open a simple UI where you can edit settings in real time:
 
 ![ui-settings](./assets/ui-settings.png "UI-settings example")
 

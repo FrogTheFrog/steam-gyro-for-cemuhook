@@ -28,7 +28,7 @@ A settings file will be created in the same directory. If you want, you can chan
 
 ![ui-settings](./assets/ui-settings.png "UI-settings example")
 
-UI also allows to connect to other Steam Controllers and observer their data stream:
+UI also allows to connect to other Steam Controllers and observe their data stream:
 
 ![ui-devices](./assets/ui-devices.png "UI-devices example")
 

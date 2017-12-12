@@ -32,6 +32,10 @@ UI also allows to connect to other Steam Controllers and observe their data stre
 
 ![ui-devices](./assets/ui-devices.png "UI-devices example")
 
+If you have changed default server IP or port, you will also need to change it in `cemuhook.ini` under `Input`:
+
+![cemuhook-ini-change](./assets/cemuhook-ini-change.png "Cemuhook ini example")
+
 Finally, go to Cemu and make sure motion source is selected:
 
 ![cemu-example](./assets/cemu-example.png "Cemu example")

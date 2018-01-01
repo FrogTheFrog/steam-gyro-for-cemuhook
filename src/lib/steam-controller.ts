@@ -236,7 +236,7 @@ export namespace SteamController {
                 this.steamDevice.free();
                 this.steamDevice = undefined;
 
-                let mac =  this.report.macAddress;
+                let mac = this.report.macAddress;
                 this.report = emptySteamControllerReport();
                 this.report.macAddress = mac;
 
@@ -482,20 +482,31 @@ export namespace SteamController {
                     }
                 }
 
-                if (event === HidEvent.DataUpdate) {
-                    let enableData = this.motionSensors.accelerometer && report.accelerometer.x === 0 && report.accelerometer.y === 0 && report.accelerometer.z === 0;
-                    enableData = enableData || this.motionSensors.gyro && report.gyro.x === 0 && report.gyro.y === 0 && report.gyro.z === 0;
-                    enableData = enableData || this.motionSensors.quaternion && report.quaternion.x === 0 && report.quaternion.y === 0 && report.quaternion.z === 0;
-
-                    if (enableData) {
-                        try {
-                            this.enableOrientationData();
-                        } catch (everything) { } // In case HID device is disconnected
-                    }
+                if (event === HidEvent.DataUpdate && this.isSensorDataStuck(report)) {
+                    try {
+                        this.enableOrientationData();
+                    } catch (everything) { } // In case HID device is disconnected
                 }
 
                 this.handlingData = false;
             }
+        }
+
+        private isSensorDataStuck(report: Report) {
+            return (
+                (this.motionSensors.accelerometer &&
+                    report.accelerometer.x === this.report.accelerometer.x &&
+                    report.accelerometer.y === this.report.accelerometer.y &&
+                    report.accelerometer.z === this.report.accelerometer.z) ||
+                (this.motionSensors.gyro &&
+                    report.gyro.x === this.report.gyro.x &&
+                    report.gyro.y === this.report.gyro.y &&
+                    report.gyro.z === this.report.gyro.z) ||
+                (this.motionSensors.quaternion &&
+                    report.quaternion.x === this.report.quaternion.x &&
+                    report.quaternion.y === this.report.quaternion.y &&
+                    report.quaternion.z === this.report.quaternion.z)
+            );
         }
 
         private positionToDS_Position(int16_value: number) {

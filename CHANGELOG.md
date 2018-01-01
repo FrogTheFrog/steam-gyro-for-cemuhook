@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.1.2 - 2018-01-01
+
+### Fixed
+- App could not properly detect when Steam would decide to turn off motion sensors. Thus resulting in stuck sensor data until app is restarted.
+
 ## 1.1.1 - 2017-11-03
 
 ### Fixed

@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## 1.2.0 - 2018-01-01
+## 1.2.0 - 2018-01-09
 
 ### Added
 - Rudimentary non-fatal error handling via UI. Allows to change server address, etc. if incorrect setting has caused an error. Previously you would have to edit `json` file.

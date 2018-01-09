@@ -7,7 +7,7 @@ $foreground: map-get($dark-theme, foreground);
 :host {
     display: grid;
     justify-items: center;
-    align-items: center;
+    overflow: auto;
 
     background-color: mat-color($background, background);
 
@@ -17,24 +17,35 @@ $foreground: map-get($dark-theme, foreground);
         margin: 0;
     }
 
-    > form{
+    form{
         display: grid;
         grid-template-areas: 
-            'server gyro accelerometer'
-            'toolbar toolbar toolbar';
-        grid-template-columns: 1fr 1fr 1fr;
+            'server server server server'
+            'gyro-post accelerometer-post gyro-tresh accelerometer-tresh'
+            'toolbar toolbar toolbar toolbar';
+        grid-template-columns: 1fr 1fr 1fr 1fr;
         grid-gap: 1em;
+
+        padding: 0.5em;
 
         .UDP_server{
             grid-area: server;
         }
 
-        .gyro{
-            grid-area: gyro;
+        .gyro-post{
+            grid-area: gyro-post;
         }
 
-        .accelerometer{
-            grid-area: accelerometer;
+        .accelerometer-post{
+            grid-area: accelerometer-post;
+        }
+
+        .gyro-tresh{
+            grid-area: gyro-tresh;
+        }
+
+        .accelerometer-tresh{
+            grid-area: accelerometer-tresh;
         }
 
         .toolbar{
@@ -54,7 +65,11 @@ $foreground: map-get($dark-theme, foreground);
         > div{
             @include mat-elevation(2);
             background-color: mat-color($background, card);
-            min-width: 250px;
+            min-width: 80px;
+
+            mat-toolbar {
+                font-size: 0.9em;
+            }
 
             > .container{
                 padding: 1em;
@@ -68,4 +83,25 @@ $foreground: map-get($dark-theme, foreground);
             }
         }
     }
+
+    > .container {
+        margin: auto 0;
+    }
+
+    &::-webkit-scrollbar {
+		width: 16px;
+		height: 16px;
+	}
+
+	&::-webkit-scrollbar-track {
+		background-color: mat-color($background, background, 0.5);
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background-color: mat-color($background, status-bar, 0.5);
+	}
+
+	&::-webkit-scrollbar-corner {
+		background-color: mat-color($background, background, 0.5);
+	}
 }

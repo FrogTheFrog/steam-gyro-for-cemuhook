@@ -19,7 +19,7 @@ export class SettingsService {
                 this.retrievingData = false;
                 this.userSettings.next(settings);
             }
-        })
+        });
     }
 
     get settings() {

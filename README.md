@@ -40,10 +40,6 @@ Finally, go to Cemu and make sure motion source is selected:
 
 ![cemu-example](./assets/cemu-example.png "Cemu example")
 
-## Resetting position
-
-If you leave Steam Controller motionless, after a few seconds Cemuhook will reset it's position to default position. Basically, place controller in front of your screen if it's not moving in the direction you want and wait.
-
 ## Icon
 
 The icon you see in image above is licensed, thus I am not allowed to share it.

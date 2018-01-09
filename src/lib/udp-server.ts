@@ -9,16 +9,6 @@ function char(a: string) {
     return a.charCodeAt(0);
 }
 
-class UdpError {
-    public error: Error;
-    public fatal: boolean;
-
-    constructor(msg: string, fatal: boolean = false) {
-        this.error = new Error(msg);
-        this.fatal = fatal;
-    }
-}
-
 class ClientRequestTimes {
     public timeForAllPads: number;
     public timeForPadById: number[];
@@ -52,7 +42,7 @@ export namespace UdpServer {
     export const clientTimeoutLimit: number = 5000;
 
     export interface Events {
-        error: { error: Error, fatal: boolean }
+        error: { error: Error }
     }
 
     export const enum MessageType {
@@ -74,7 +64,7 @@ export namespace UdpServer {
             this.stop();
             this.socket = dgram.createSocket('udp4');
 
-            this.socket.on('error', (error) => this.errorCallback(error, true));
+            this.socket.on('error', this.errorCallback.bind(this));
             this.socket.on('message', this.onMessage.bind(this));
 
             this.socket.bind(port, address, callback);
@@ -156,7 +146,7 @@ export namespace UdpServer {
                 return index;
             }
             else
-                throw new UdpError(`"beginPacket" buffer size is too small (${data.length})`);
+                throw new Error(`"beginPacket" buffer size is too small (${data.length})`);
         }
 
         private finishPacket(data: Buffer) {
@@ -171,10 +161,10 @@ export namespace UdpServer {
 
             this.socket.send(buffer, clientEndpoint.port, clientEndpoint.address, (error, bytes) => {
                 if (error) {
-                    this.errorCallback(error, true);
+                    this.errorCallback(error);
                 }
                 else if (bytes !== buffer.length) {
-                    this.errorCallback(new Error(`failed to completely send all of buffer. Sent: ${bytes}. Buffer length: ${buffer.length}`), true);
+                    this.errorCallback(new Error(`failed to completely send all of buffer. Sent: ${bytes}. Buffer length: ${buffer.length}`));
                 }
                 else if (callback !== undefined) {
                     callback();
@@ -189,14 +179,14 @@ export namespace UdpServer {
                     let protocolVer = data.readUInt16LE(index);
 
                     if (protocolVer > maxProtocolVer)
-                        throw new UdpError(`outdated protocol. Received: ${protocolVer}. Current: ${maxProtocolVer}.`);
+                        throw new Error(`outdated protocol. Received: ${protocolVer}. Current: ${maxProtocolVer}.`);
                     else
                         index += 2;
 
                     let packetSize = data.readUInt16LE(index);
 
                     if (packetSize < 0)
-                        throw new UdpError(`negative packet size received (${packetSize}).`);
+                        throw new Error(`negative packet size received (${packetSize}).`);
                     else
                         index += 2;
 
@@ -209,7 +199,7 @@ export namespace UdpServer {
                     let computedCrc = crc.crc32(data);
 
                     if (receivedCrc !== computedCrc)
-                        throw new UdpError(`crc mismatch. Received: ${receivedCrc}. Computed: ${computedCrc}.`);
+                        throw new Error(`crc mismatch. Received: ${receivedCrc}. Computed: ${computedCrc}.`);
 
                     let clientId = data.readUInt32LE(index);
                     index += 4;
@@ -227,13 +217,13 @@ export namespace UdpServer {
                         let numOfPadRequests = data.readInt32LE(index);
 
                         if (numOfPadRequests < 0 || numOfPadRequests > 4)
-                            throw new UdpError(`number of pad requests is out of range. Range: [0; 4]. Request: ${numOfPadRequests}.`);
+                            throw new Error(`number of pad requests is out of range. Range: [0; 4]. Request: ${numOfPadRequests}.`);
                         else
                             index += 4;
 
                         for (let i = 0; i < numOfPadRequests; i++) {
                             if (data[index + i] > 3)
-                                throw new UdpError(`request index for ${i} pad is out of range. Range: [0; 3]. Request: ${data[index + i]}.`);
+                                throw new Error(`request index for ${i} pad is out of range. Range: [0; 3]. Request: ${data[index + i]}.`);
                         }
 
                         let outBuffer = Buffer.alloc(16);
@@ -288,15 +278,12 @@ export namespace UdpServer {
                 }
             }
             catch (error) {
-                if (error instanceof UdpError)
-                    this.errorCallback(error.error, error.fatal);
-                else
-                    this.errorCallback(error);
+                this.errorCallback(error);
             }
         }
 
-        private errorCallback = (error: Error, fatal: boolean = true) => {
-            this.emit('error', { error, fatal });
+        private errorCallback = (error: Error) => {
+            this.emit('error', { error });
         }
 
         private handleReport = (data: { report: DualShock.Report, meta: DualShock.Meta }) => {
@@ -417,10 +404,10 @@ export namespace UdpServer {
                         for (let i = 0; i < clients.length; i++) {
                             this.socket.send(outBuffer, clients[i].port, clients[i].address, (error, bytes) => {
                                 if (error) {
-                                    this.errorCallback(error, true);
+                                    this.errorCallback(error);
                                 }
                                 else if (bytes !== outBuffer.length) {
-                                    this.errorCallback(new Error(`failed to completely send all of buffer. Sent: ${bytes}. Buffer length: ${outBuffer.length}`), true);
+                                    this.errorCallback(new Error(`failed to completely send all of buffer. Sent: ${bytes}. Buffer length: ${outBuffer.length}`));
                                 }
                             });
                         }
@@ -428,10 +415,7 @@ export namespace UdpServer {
                 }
             }
             catch (error) {
-                if (error instanceof UdpError)
-                    this.errorCallback(error.error, error.fatal);
-                else
-                    this.errorCallback(error);
+                this.errorCallback(error);
             }
         }
 

@@ -9,6 +9,7 @@ import * as winston from "winston";
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as url from 'url';
+import { NonfatalError } from './lib/error.model';
 
 let tray: Tray = null;
 let contextMenu: Menu = null;
@@ -70,6 +71,7 @@ let startServer = (settings?: { userSettings?: userSettings.type, userSettingsFi
             try {
                 server.start(data.server.port, data.server.address, () => {
                     controller.setPostScalers(data.postScalers);
+                    controller.setSensorThresholds(data.sensorThresholds);
                     resolve(data.server);
                 });
             } catch (error) {
@@ -77,9 +79,10 @@ let startServer = (settings?: { userSettings?: userSettings.type, userSettingsFi
             }
         });
     }).then((data) => {
-        tray.displayBalloon({ title: 'UDP server started', content: `Running@${data.address}:${data.port}`, icon: iconPng });
-
-        tray.setToolTip(`Server@${data.address}:${data.port}`);
+        if (data !== undefined) {
+            tray.displayBalloon({ title: 'UDP server started', content: `Running@${data.address}:${data.port}`, icon: iconPng });
+            tray.setToolTip(`Server@${data.address}:${data.port}`);
+        }
     }).catch((error) => {
         winston.error('FATAL ERROR!');
         winston.error(error);
@@ -115,7 +118,7 @@ let exitApp = (error?: any) => {
 }
 
 // Creates and/or shows renderer window
-let showRendererWindow = () => {
+let showRendererWindow = (error?: NonfatalError) => {
     if (rendererWindow === null) {
         rendererWindow = new BrowserWindow({
             minWidth: 920,
@@ -165,6 +168,9 @@ let showRendererWindow = () => {
         });
 
         ipcMain.once('angular-loaded', () => {
+            if (error !== undefined)
+                rendererWindow.webContents.send('nonfatalError', error);
+
             rendererWindow.show();
         });
     }
@@ -174,8 +180,13 @@ let showRendererWindow = () => {
             freeBrowserMemoryTimer = undefined;
         }
 
+        if (error !== undefined)
+            rendererWindow.webContents.send('nonfatalError', error);
+
         rendererWindow.show()
     }
+    else if (error !== undefined)
+        rendererWindow.webContents.send('nonfatalError', error);
 }
 
 // Check if this app is already running and quit if it is
@@ -189,11 +200,31 @@ winston.add(winston.transports.File, { filename: path.join(userDataDir, 'steam-g
 
 // Add necessary events
 server.on('error', (data) => {
-    if (data.fatal)
-        winston.error('FATAL ERROR!');
-    winston.error(data.error as any);
-    if (data.fatal)
+    if (data.error instanceof Error) {
+        let error: Error & { code: string | number } = data.error as any;
+        let nonfatalError: NonfatalError = { 
+            title: `Whoops! You have encountered "${error.code}" error.`,
+            description: undefined,
+            error: {
+                code: error.code,
+                message: error.message,
+                stack: error.stack
+            }
+        };
+
+        if (error.code === 'EADDRINUSE') {
+            nonfatalError.description = `It's a known error which you get when the server address is in use. To fix it you need to change UDP server address and/or port.\r\nFor example, change 127.0.0.1 address to 127.0.0.2 and try again.`;
+        }
+        else {
+            nonfatalError.description = `It's a less known error. Google "nodejs ${error.code}" to get some insight as to what might cause it. If nothing works, post an issue on github.`;
+        }
+
+        showRendererWindow(nonfatalError);
+    }
+    else {
+        winston.error(data.error as any);
         exitApp(data.error);
+    }
 });
 
 // Start app
@@ -226,7 +257,7 @@ app.on('ready', () => {
 });
 
 // Required for MacOS
-app.on('activate', showRendererWindow);
+app.on('activate', () => showRendererWindow());
 
 // Prevent app exit upon renderer window close
 app.on('window-all-closed', (event: Event) => {
@@ -234,6 +265,10 @@ app.on('window-all-closed', (event: Event) => {
 });
 
 // Inter-process communication
+
+ipcMain.on('nonfatalError', (event: { preventDefault: () => void; sender: WebContents; }, data: NonfatalError) => {
+    winston.error(data.error.stack);
+});
 
 ipcMain.on('restartServer', (event: { preventDefault: () => void; sender: WebContents; }) => {
     startServer({ userSettings: currentSettings });
@@ -252,14 +287,24 @@ ipcMain.on('saveSettingsReq', (event: { preventDefault: () => void; sender: WebC
     });
 });
 
-ipcMain.on('updateGyroReq', (event: { preventDefault: () => void; sender: WebContents; }, data: { x: number, y: number, z: number }) => {
+ipcMain.on('updateGyroPostScalersReq', (event: { preventDefault: () => void; sender: WebContents; }, data: { x: number, y: number, z: number }) => {
     currentSettings.postScalers.gyro = data;
     controller.setPostScalers({ gyro: data });
 });
 
-ipcMain.on('updateAccelerometerReq', (event: { preventDefault: () => void; sender: WebContents; }, data: { x: number, y: number, z: number }) => {
+ipcMain.on('updateAccelerometerPostScalersReq', (event: { preventDefault: () => void; sender: WebContents; }, data: { x: number, y: number, z: number }) => {
     currentSettings.postScalers.accelerometer = data;
     controller.setPostScalers({ accelerometer: data });
+});
+
+ipcMain.on('updateGyroSensorThresholdsReq', (event: { preventDefault: () => void; sender: WebContents; }, data: { x: number, y: number, z: number }) => {
+    currentSettings.sensorThresholds.gyro = data;
+    controller.setSensorThresholds({ gyro: data });
+});
+
+ipcMain.on('updateAccelerometerSensorThresholdsReq', (event: { preventDefault: () => void; sender: WebContents; }, data: { x: number, y: number, z: number }) => {
+    currentSettings.sensorThresholds.accelerometer = data;
+    controller.setSensorThresholds({ accelerometer: data });
 });
 
 ipcMain.on('updateServerReq', (event: { preventDefault: () => void; sender: WebContents; }, data: { address: string, port: number }) => {

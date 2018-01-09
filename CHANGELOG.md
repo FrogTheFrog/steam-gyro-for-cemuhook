@@ -1,6 +1,14 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.2.0 - 2018-01-01
+
+### Added
+- Rudimentary non-fatal error handling via UI. Allows to change server address, etc. if incorrect setting has caused an error. Previously you would have to edit `json` file.
+- Gyroscope and accelerometer threshold settings have been added. Gyro threshold is set to `1` (for all 3 axis) and accelerometer threshold is set to `0.01` (for all 3 axis) by default. To disable threshold, set its value to `0`. Threshold values are relative to post-scaler values - `finalThresholdValue = thresholdValue * postScalerValue`.
+
+Threshold represents an absolute minimum difference between old value and new sensor value. This is used to eliminate micro stuttering
+
 ## 1.1.2 - 2018-01-01
 
 ### Fixed

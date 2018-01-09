@@ -9,73 +9,115 @@ import { Subscription } from "rxjs";
 @Component({
     selector: 'settings',
     template: `
-        <form (click)="saveSettings()" [formGroup]="settingsForm">
-            <div class="UDP_server">
-                <mat-toolbar>
-                    General Settings
-                </mat-toolbar>
-                <div class="container">
-                    <ng-container formGroupName="server">
-                        <mat-form-field>
-                            <mat-hint align="end">Requires restart</mat-hint>
-                            <input matInput type="text" placeholder="Server address" formControlName="address">
-                            <mat-error *ngIf="hasErrors('server.address')">{{getErrorMsg('server.address')}}</mat-error>
-                        </mat-form-field>
-                        <mat-form-field>
-                            <mat-hint align="end">Requires restart</mat-hint>
-                            <input matInput type="number" placeholder="Server port" formControlName="port">
-                            <mat-error *ngIf="hasErrors('server.port')">{{getErrorMsg('server.port')}}</mat-error>
-                        </mat-form-field>
-                    </ng-container>
-                    <mat-checkbox formControlName="silentErrors">Silent errors</mat-checkbox>
-                </div>
-            </div>
-            <ng-container formGroupName="postScalers">
-                <div class="gyro" formGroupName="gyro">
+        <div class="container">
+            <form (click)="saveSettings()" [formGroup]="settingsForm">
+                <div class="UDP_server">
                     <mat-toolbar>
-                        Gyroscope
+                        General Settings
                     </mat-toolbar>
                     <div class="container">
-                        <mat-form-field>
-                            <input matInput type="number" placeholder="X postscaler value" formControlName="x">
-                            <mat-error *ngIf="hasErrors('postScalers.gyro.x')">{{getErrorMsg('postScalers.gyro.x')}}</mat-error>
-                        </mat-form-field>
-                        <mat-form-field>
-                            <input matInput type="number" placeholder="Y postscaler value" formControlName="y">
-                            <mat-error *ngIf="hasErrors('postScalers.gyro.y')">{{getErrorMsg('postScalers.gyro.y')}}</mat-error>
-                        </mat-form-field>
-                        <mat-form-field>
-                            <input matInput type="number" placeholder="Z postscaler value" formControlName="z">
-                            <mat-error *ngIf="hasErrors('postScalers.gyro.z')">{{getErrorMsg('postScalers.gyro.z')}}</mat-error>
-                        </mat-form-field>
+                        <ng-container formGroupName="server">
+                            <mat-form-field>
+                                <mat-hint align="end">Requires restart</mat-hint>
+                                <input matInput type="text" placeholder="Server address" formControlName="address">
+                                <mat-error *ngIf="hasErrors('server.address')">{{getErrorMsg('server.address')}}</mat-error>
+                            </mat-form-field>
+                            <mat-form-field>
+                                <mat-hint align="end">Requires restart</mat-hint>
+                                <input matInput type="number" placeholder="Server port" formControlName="port">
+                                <mat-error *ngIf="hasErrors('server.port')">{{getErrorMsg('server.port')}}</mat-error>
+                            </mat-form-field>
+                        </ng-container>
+                        <mat-checkbox formControlName="silentErrors">Silent errors</mat-checkbox>
                     </div>
                 </div>
-                <div class="accelerometer" formGroupName="accelerometer">
-                    <mat-toolbar>
-                        Accelerometer
-                    </mat-toolbar>
-                    <div class="container">
-                        <mat-form-field>
-                            <input matInput type="number" placeholder="X postscaler value" formControlName="x">
-                            <mat-error *ngIf="hasErrors('postScalers.accelerometer.x')">{{getErrorMsg('postScalers.accelerometer.x')}}</mat-error>
-                        </mat-form-field>
-                        <mat-form-field>
-                            <input matInput type="number" placeholder="Y postscaler value" formControlName="y">
-                            <mat-error *ngIf="hasErrors('postScalers.accelerometer.y')">{{getErrorMsg('postScalers.accelerometer.y')}}</mat-error>
-                        </mat-form-field>
-                        <mat-form-field>
-                            <input matInput type="number" placeholder="Z postscaler value" formControlName="z">
-                            <mat-error *ngIf="hasErrors('postScalers.accelerometer.z')">{{getErrorMsg('postScalers.accelerometer.z')}}</mat-error>
-                        </mat-form-field>
+                <ng-container formGroupName="postScalers">
+                    <div class="gyro-post" formGroupName="gyro">
+                        <mat-toolbar>
+                            Gyroscope post-scaler
+                        </mat-toolbar>
+                        <div class="container">
+                            <mat-form-field>
+                                <input matInput type="number" placeholder="X value" formControlName="x">
+                                <mat-error *ngIf="hasErrors('postScalers.gyro.x')">{{getErrorMsg('postScalers.gyro.x')}}</mat-error>
+                            </mat-form-field>
+                            <mat-form-field>
+                                <input matInput type="number" placeholder="Y value" formControlName="y">
+                                <mat-error *ngIf="hasErrors('postScalers.gyro.y')">{{getErrorMsg('postScalers.gyro.y')}}</mat-error>
+                            </mat-form-field>
+                            <mat-form-field>
+                                <input matInput type="number" placeholder="Z value" formControlName="z">
+                                <mat-error *ngIf="hasErrors('postScalers.gyro.z')">{{getErrorMsg('postScalers.gyro.z')}}</mat-error>
+                            </mat-form-field>
+                        </div>
                     </div>
+                    <div class="accelerometer-post" formGroupName="accelerometer">
+                        <mat-toolbar>
+                            Accelerometer post-scaler
+                        </mat-toolbar>
+                        <div class="container">
+                            <mat-form-field>
+                                <input matInput type="number" placeholder="X value" formControlName="x">
+                                <mat-error *ngIf="hasErrors('postScalers.accelerometer.x')">{{getErrorMsg('postScalers.accelerometer.x')}}</mat-error>
+                            </mat-form-field>
+                            <mat-form-field>
+                                <input matInput type="number" placeholder="Y value" formControlName="y">
+                                <mat-error *ngIf="hasErrors('postScalers.accelerometer.y')">{{getErrorMsg('postScalers.accelerometer.y')}}</mat-error>
+                            </mat-form-field>
+                            <mat-form-field>
+                                <input matInput type="number" placeholder="Z value" formControlName="z">
+                                <mat-error *ngIf="hasErrors('postScalers.accelerometer.z')">{{getErrorMsg('postScalers.accelerometer.z')}}</mat-error>
+                            </mat-form-field>
+                        </div>
+                    </div>
+                </ng-container>
+                <ng-container formGroupName="sensorThresholds">
+                    <div class="gyro-tresh" formGroupName="gyro">
+                        <mat-toolbar>
+                            Gyroscope threshold
+                        </mat-toolbar>
+                        <div class="container">
+                            <mat-form-field>
+                                <input matInput type="number" placeholder="X value" formControlName="x">
+                                <mat-error *ngIf="hasErrors('sensorThresholds.gyro.x')">{{getErrorMsg('sensorThresholds.gyro.x')}}</mat-error>
+                            </mat-form-field>
+                            <mat-form-field>
+                                <input matInput type="number" placeholder="Y value" formControlName="y">
+                                <mat-error *ngIf="hasErrors('sensorThresholds.gyro.y')">{{getErrorMsg('sensorThresholds.gyro.y')}}</mat-error>
+                            </mat-form-field>
+                            <mat-form-field>
+                                <input matInput type="number" placeholder="Z value" formControlName="z">
+                                <mat-error *ngIf="hasErrors('sensorThresholds.gyro.z')">{{getErrorMsg('sensorThresholds.gyro.z')}}</mat-error>
+                            </mat-form-field>
+                        </div>
+                    </div>
+                    <div class="accelerometer-tresh" formGroupName="accelerometer">
+                        <mat-toolbar>
+                            Accelerometer threshold
+                        </mat-toolbar>
+                        <div class="container">
+                            <mat-form-field>
+                                <input matInput type="number" placeholder="X value" formControlName="x">
+                                <mat-error *ngIf="hasErrors('sensorThresholds.accelerometer.x')">{{getErrorMsg('sensorThresholds.accelerometer.x')}}</mat-error>
+                            </mat-form-field>
+                            <mat-form-field>
+                                <input matInput type="number" placeholder="Y value" formControlName="y">
+                                <mat-error *ngIf="hasErrors('sensorThresholds.accelerometer.y')">{{getErrorMsg('sensorThresholds.accelerometer.y')}}</mat-error>
+                            </mat-form-field>
+                            <mat-form-field>
+                                <input matInput type="number" placeholder="Z value" formControlName="z">
+                                <mat-error *ngIf="hasErrors('sensorThresholds.accelerometer.z')">{{getErrorMsg('sensorThresholds.accelerometer.z')}}</mat-error>
+                            </mat-form-field>
+                        </div>
+                    </div>
+                </ng-container>
+                <div class="toolbar">
+                    <span class="fill-remaining-space"></span>
+                    <button mat-button (click)="restartServer()">Restart server</button>
+                    <button type="submit" mat-button color="primary">Save settings</button>
                 </div>
-            </ng-container>
-            <div class="toolbar">
-                <span class="fill-remaining-space"></span>
-                <button mat-button (click)="restartServer()">Restart server</button>
-                <button type="submit" mat-button color="primary">Save settings</button>
-            </div>
-        </form>
+            </form>
+        </div>
     `,
     styleUrls: ['../styles/settings.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
@@ -140,6 +182,18 @@ export class SettingsComponent implements OnInit {
                     z: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]]
                 })
             }),
+            sensorThresholds: this.fb.group({
+                gyro: this.fb.group({
+                    x: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]],
+                    y: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]],
+                    z: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]]
+                }),
+                accelerometer: this.fb.group({
+                    x: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]],
+                    y: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]],
+                    z: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]]
+                })
+            }),
             modifierVersion: [null]
         });
 
@@ -152,18 +206,32 @@ export class SettingsComponent implements OnInit {
         }));
 
         let serverForm = this.settingsForm.get('server');
-        let gyroForm = this.settingsForm.get('postScalers.gyro');
-        let accelerometerForm = this.settingsForm.get('postScalers.accelerometer');
+        let gyroPostScalerForm = this.settingsForm.get('postScalers.gyro');
+        let accelerometerPostScalerForm = this.settingsForm.get('postScalers.accelerometer');
+        let gyroThresholdsForm = this.settingsForm.get('sensorThresholds.gyro');
+        let accelerometerThresholdsForm = this.settingsForm.get('sensorThresholds.accelerometer');
 
-        this.subscription.add(gyroForm.valueChanges.subscribe((data: { x: number, y: number, z: number }) => {
-            if (gyroForm.valid) {
-                ipcRenderer.send('updateGyroReq', data);
+        this.subscription.add(gyroPostScalerForm.valueChanges.subscribe((data: { x: number, y: number, z: number }) => {
+            if (gyroPostScalerForm.valid) {
+                ipcRenderer.send('updateGyroPostScalersReq', data);
             }
         }));
 
-        this.subscription.add(accelerometerForm.valueChanges.subscribe((data: { x: number, y: number, z: number }) => {
-            if (accelerometerForm.valid) {
-                ipcRenderer.send('updateAccelerometerReq', data);
+        this.subscription.add(accelerometerPostScalerForm.valueChanges.subscribe((data: { x: number, y: number, z: number }) => {
+            if (accelerometerPostScalerForm.valid) {
+                ipcRenderer.send('updateAccelerometerPostScalersReq', data);
+            }
+        }));
+
+        this.subscription.add(gyroThresholdsForm.valueChanges.subscribe((data: { x: number, y: number, z: number }) => {
+            if (gyroThresholdsForm.valid) {
+                ipcRenderer.send('updateGyroSensorThresholdsReq', data);
+            }
+        }));
+
+        this.subscription.add(accelerometerThresholdsForm.valueChanges.subscribe((data: { x: number, y: number, z: number }) => {
+            if (accelerometerThresholdsForm.valid) {
+                ipcRenderer.send('updateAccelerometerSensorThresholdsReq', data);
             }
         }));
 

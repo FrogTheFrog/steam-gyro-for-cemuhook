@@ -1,13 +1,14 @@
 import { Injectable } from '@angular/core';
 import { remote, BrowserWindow } from 'electron';
 import { Subject } from 'rxjs';
+import { ErrorService } from './error.service';
 
 @Injectable()
 export class WindowService {
     private currentWindow: BrowserWindow = remote.getCurrentWindow();
     private eventHandler: Subject<'show' | 'hide' | 'maximize' | 'unmaximize'> = new Subject();
 
-    constructor() {
+    constructor(private errorService: ErrorService) {
         this.currentWindow.on('show', () => {
             this.eventHandler.next('show');
         }).on('hide', () => {

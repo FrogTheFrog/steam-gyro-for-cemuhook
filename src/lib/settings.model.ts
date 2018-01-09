@@ -18,6 +18,17 @@ export namespace userSettings {
                 y: number,
                 z: number
             }
+        },
+        sensorThresholds: {
+            gyro: {
+                x: number,
+                y: number,
+                z: number
+            }, accelerometer: {
+                x: number,
+                y: number,
+                z: number
+            }
         }
     }
 
@@ -79,6 +90,48 @@ export namespace userSettings {
                             "z": {
                                 "type": "number",
                                 "default": 1
+                            }
+                        }
+                    }
+                }
+            },
+            "sensorThresholds": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                    "gyro": {
+                        "default": {},
+                        "type": "object",
+                        "properties": {
+                            "x": {
+                                "type": "number",
+                                "default": 1
+                            },
+                            "y": {
+                                "type": "number",
+                                "default": 1
+                            },
+                            "z": {
+                                "type": "number",
+                                "default": 1
+                            }
+                        }
+                    },
+                    "accelerometer": {
+                        "default": {},
+                        "type": "object",
+                        "properties": {
+                            "x": {
+                                "type": "number",
+                                "default": 0.01
+                            },
+                            "y": {
+                                "type": "number",
+                                "default": 0.01
+                            },
+                            "z": {
+                                "type": "number",
+                                "default": 0.01
                             }
                         }
                     }

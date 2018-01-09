@@ -179,6 +179,18 @@ export namespace SteamController {
                 z: 1
             }
         };
+        private sensorThresholds = {
+            gyro: {
+                x: 0,
+                y: 0,
+                z: 0
+            },
+            accelerometer: {
+                x: 0,
+                y: 0,
+                z: 0
+            }
+        };
         private motionSensors = {
             accelerometer: true,
             gyro: true,
@@ -275,6 +287,13 @@ export namespace SteamController {
                 this.postScalers.gyro = scalers.gyro;
             if (scalers.accelerometer != undefined)
                 this.postScalers.accelerometer = scalers.accelerometer;
+        }
+
+        setSensorThresholds(thresholds: { gyro?: { x: number, y: number, z: number }, accelerometer?: { x: number, y: number, z: number } }) {
+            if (thresholds.gyro != undefined)
+                this.sensorThresholds.gyro = thresholds.gyro;
+            if (thresholds.accelerometer != undefined)
+                this.sensorThresholds.accelerometer = thresholds.accelerometer;
         }
 
         setHomeButtonBrightness(percentage: number) {
@@ -417,18 +436,21 @@ export namespace SteamController {
 
                     index += 4; //padding
 
-                    report.accelerometer.x = data.readInt16LE(index, true) * scales.accelerometer * this.postScalers.accelerometer.x;
+                    let accelerometer: Report['accelerometer'] = { x: undefined, y: undefined, z: undefined };
+                    let gyro: Report['gyro'] = { x: undefined, y: undefined, z: undefined };
+
+                    accelerometer.x = data.readInt16LE(index, true) * scales.accelerometer * this.postScalers.accelerometer.x;
                     index += 2;
-                    report.accelerometer.y = data.readInt16LE(index, true) * scales.accelerometer * this.postScalers.accelerometer.y;
+                    accelerometer.y = data.readInt16LE(index, true) * scales.accelerometer * this.postScalers.accelerometer.y;
                     index += 2;
-                    report.accelerometer.z = data.readInt16LE(index, true) * scales.accelerometer * this.postScalers.accelerometer.z;
+                    accelerometer.z = data.readInt16LE(index, true) * scales.accelerometer * this.postScalers.accelerometer.z;
                     index += 2;
 
-                    report.gyro.x = data.readInt16LE(index, true) * scales.gyro * this.postScalers.gyro.x;
+                    gyro.x = data.readInt16LE(index, true) * scales.gyro * this.postScalers.gyro.x;
                     index += 2;
-                    report.gyro.y = data.readInt16LE(index, true) * scales.gyro * this.postScalers.gyro.y;
+                    gyro.y = data.readInt16LE(index, true) * scales.gyro * this.postScalers.gyro.y;
                     index += 2;
-                    report.gyro.z = data.readInt16LE(index, true) * scales.gyro * this.postScalers.gyro.z;
+                    gyro.z = data.readInt16LE(index, true) * scales.gyro * this.postScalers.gyro.z;
                     index += 2;
 
                     report.quaternion.x = data.readInt16LE(index, true) * scales.quaternion;
@@ -438,6 +460,26 @@ export namespace SteamController {
                     report.quaternion.z = data.readInt16LE(index, true) * scales.quaternion;
                     index += 2;
                     report.quaternion.w = data.readInt16LE(index, true) * scales.quaternion;
+
+                    if (Math.abs(report.accelerometer.x - accelerometer.x) >= this.sensorThresholds.accelerometer.x * this.postScalers.accelerometer.x)
+                        report.accelerometer.x = accelerometer.x;
+                    if (Math.abs(report.accelerometer.y - accelerometer.y) >= this.sensorThresholds.accelerometer.y * this.postScalers.accelerometer.y)
+                        report.accelerometer.y = accelerometer.y;
+                    if (Math.abs(report.accelerometer.z - accelerometer.z) >= this.sensorThresholds.accelerometer.z * this.postScalers.accelerometer.z)
+                        report.accelerometer.z = accelerometer.z;
+
+                    if (Math.abs(report.gyro.x - gyro.x) >= this.sensorThresholds.gyro.x * this.postScalers.gyro.x)
+                        report.gyro.x = gyro.x;
+                    if (Math.abs(report.gyro.y - gyro.y) >= this.sensorThresholds.gyro.y * this.postScalers.gyro.y)
+                        report.gyro.y = gyro.y;
+                    if (Math.abs(report.gyro.z - gyro.z) >= this.sensorThresholds.gyro.z * this.postScalers.gyro.z)
+                        report.gyro.z = gyro.z;
+
+                    if (this.isSensorDataStuck(accelerometer, gyro, report.quaternion)) {
+                        try {
+                            this.enableOrientationData();
+                        } catch (everything) { } // In case HID device is disconnected
+                    }
                 }
                 else if (event === HidEvent.ConnectionUpdate) {
                     let connection = data[index];
@@ -482,30 +524,24 @@ export namespace SteamController {
                     }
                 }
 
-                if (event === HidEvent.DataUpdate && this.isSensorDataStuck(report)) {
-                    try {
-                        this.enableOrientationData();
-                    } catch (everything) { } // In case HID device is disconnected
-                }
-
                 this.handlingData = false;
             }
         }
 
-        private isSensorDataStuck(report: Report) {
+        private isSensorDataStuck(accelerometer: Report['accelerometer'], gyro: Report['gyro'], quaternion: Report['quaternion']) {
             return (
                 (this.motionSensors.accelerometer &&
-                    report.accelerometer.x === this.report.accelerometer.x &&
-                    report.accelerometer.y === this.report.accelerometer.y &&
-                    report.accelerometer.z === this.report.accelerometer.z) ||
+                    accelerometer.x === this.report.accelerometer.x &&
+                    accelerometer.y === this.report.accelerometer.y &&
+                    accelerometer.z === this.report.accelerometer.z) ||
                 (this.motionSensors.gyro &&
-                    report.gyro.x === this.report.gyro.x &&
-                    report.gyro.y === this.report.gyro.y &&
-                    report.gyro.z === this.report.gyro.z) ||
+                    gyro.x === this.report.gyro.x &&
+                    gyro.y === this.report.gyro.y &&
+                    gyro.z === this.report.gyro.z) ||
                 (this.motionSensors.quaternion &&
-                    report.quaternion.x === this.report.quaternion.x &&
-                    report.quaternion.y === this.report.quaternion.y &&
-                    report.quaternion.z === this.report.quaternion.z)
+                    quaternion.x === this.report.quaternion.x &&
+                    quaternion.y === this.report.quaternion.y &&
+                    quaternion.z === this.report.quaternion.z)
             );
         }
 

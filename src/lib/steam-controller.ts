@@ -479,6 +479,8 @@ export namespace SteamController {
                     index += 2;
                     report.quaternion.w = data.readInt16LE(index, true) * minValues.quaternion;
 
+                    //////////////////////////////FILTERING IS DONE HERE
+
                     if (this.filterCoefficients.accelerometer.useFilter && Math.abs(accelerometer.x - report.accelerometer.x) < scales.accelerometer * this.filterCoefficients.gyro.y /*<-something*/){
                         //IIRF
                         report.accelerometer.x += this.filterCoefficients.accelerometer.x * (accelerometer.x - report.accelerometer.x);
@@ -506,6 +508,8 @@ export namespace SteamController {
                         report.gyro.y = gyro.y;
                         report.gyro.z = gyro.z;
                     }
+
+                    //////////////////////////////END
 
                     if (this.isSensorDataStuck(accelerometer, gyro, report.quaternion)) {
                         try {

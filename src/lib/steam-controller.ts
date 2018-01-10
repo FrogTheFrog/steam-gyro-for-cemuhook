@@ -479,11 +479,11 @@ export namespace SteamController {
                     index += 2;
                     report.quaternion.w = data.readInt16LE(index, true) * minValues.quaternion;
 
-                    if (this.filterCoefficients.accelerometer.useFilter){
+                    if (this.filterCoefficients.accelerometer.useFilter && Math.abs(accelerometer.x - report.accelerometer.x) < scales.accelerometer * this.filterCoefficients.gyro.y /*<-something*/){
                         //IIRF
                         report.accelerometer.x += this.filterCoefficients.accelerometer.x * (accelerometer.x - report.accelerometer.x);
-                        report.accelerometer.y += this.filterCoefficients.accelerometer.y * (accelerometer.y - report.accelerometer.y);
-                        report.accelerometer.z += this.filterCoefficients.accelerometer.z * (accelerometer.z - report.accelerometer.z);
+                        report.accelerometer.y += this.filterCoefficients.accelerometer.x * (accelerometer.y - report.accelerometer.y);
+                        report.accelerometer.z += this.filterCoefficients.accelerometer.x * (accelerometer.z - report.accelerometer.z);
                     }
                     else {
                         report.accelerometer.x = accelerometer.x;
@@ -491,15 +491,15 @@ export namespace SteamController {
                         report.accelerometer.z = accelerometer.z;
                     }
 
-                    if (this.filterCoefficients.gyro.useFilter){
+                    if (this.filterCoefficients.gyro.useFilter && Math.abs(accelerometer.x - report.accelerometer.x) < scales.accelerometer * this.filterCoefficients.gyro.y /*<-something*/){
                         /* //MAF
                         report.gyro.x = this.filters.gyro.x.addValue(gyro.x, true);
                         report.gyro.y = this.filters.gyro.y.addValue(gyro.y, true);
                         report.gyro.z = this.filters.gyro.z.addValue(gyro.z, true); */
                         //IIRF
                         report.gyro.x += this.filterCoefficients.gyro.x * (gyro.x - report.gyro.x);
-                        report.gyro.y += this.filterCoefficients.gyro.y * (gyro.y - report.gyro.y);
-                        report.gyro.z += this.filterCoefficients.gyro.z * (gyro.z - report.gyro.z);
+                        report.gyro.y += this.filterCoefficients.gyro.x * (gyro.y - report.gyro.y);
+                        report.gyro.z += this.filterCoefficients.gyro.x * (gyro.z - report.gyro.z);
                     }
                     else {
                         report.gyro.x = gyro.x;

@@ -37,9 +37,13 @@ import { Subscription } from "rxjs";
                             Gyroscope filter
                         </mat-toolbar>
                         <div class="container">
-                            <label>X value</label><mat-slider thumbLabel min="0" max="1" step="0.01" formControlName="x"></mat-slider>
-                            <label>Y value</label><mat-slider thumbLabel min="0" max="1" step="0.01" formControlName="y"></mat-slider>
-                            <label>Z value</label><mat-slider thumbLabel min="0" max="1" step="0.01" formControlName="z"></mat-slider>
+                            <mat-form-field>
+                                <input matInput type="number" placeholder="ALPHA" formControlName="x">
+                            </mat-form-field>
+                            <mat-form-field>
+                                <input matInput type="number" placeholder="Something" formControlName="y">
+                            </mat-form-field>
+                            <label>Not used</label><mat-slider thumbLabel min="0" max="1" step="0.01" formControlName="z"></mat-slider>
                             <mat-checkbox formControlName="useFilter">Use filter</mat-checkbox>
                         </div>
                     </div>
@@ -48,9 +52,11 @@ import { Subscription } from "rxjs";
                             Accelerometer filter
                         </mat-toolbar>
                         <div class="container">
-                            <label>X value</label><mat-slider thumbLabel min="0" max="1" step="0.01" formControlName="x"></mat-slider>
-                            <label>Y value</label><mat-slider thumbLabel min="0" max="1" step="0.01" formControlName="y"></mat-slider>
-                            <label>Z value</label><mat-slider thumbLabel min="0" max="1" step="0.01" formControlName="z"></mat-slider>
+                            <mat-form-field>
+                                <input matInput type="number" placeholder="ALPHA" formControlName="x">
+                            </mat-form-field>
+                            <label>Not used</label><mat-slider thumbLabel min="0" max="1" step="0.01" formControlName="y"></mat-slider>
+                            <label>Not used</label><mat-slider thumbLabel min="0" max="1" step="0.01" formControlName="z"></mat-slider>
                             <mat-checkbox formControlName="useFilter">Use filter</mat-checkbox>
                         </div>
                     </div>

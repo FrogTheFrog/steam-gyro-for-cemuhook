@@ -8,23 +8,14 @@ export namespace userSettings {
             port: number
         },
         silentErrors: boolean,
-        postScalers: {
+        filterCoefficients: {
             gyro: {
+                useFilter: boolean,
                 x: number,
                 y: number,
                 z: number
             }, accelerometer: {
-                x: number,
-                y: number,
-                z: number
-            }
-        },
-        sensorThresholds: {
-            gyro: {
-                x: number,
-                y: number,
-                z: number
-            }, accelerometer: {
+                useFilter: boolean,
                 x: number,
                 y: number,
                 z: number
@@ -53,7 +44,7 @@ export namespace userSettings {
                 "type": "boolean",
                 "default": false
             },
-            "postScalers": {
+            "filterCoefficients": {
                 "default": {},
                 "type": "object",
                 "properties": {
@@ -61,17 +52,27 @@ export namespace userSettings {
                         "default": {},
                         "type": "object",
                         "properties": {
+                            "useFilter": {
+                                "type": "boolean",
+                                "default": false
+                            },
                             "x": {
                                 "type": "number",
-                                "default": 1
+                                "default": 1,
+                                "minimum": 0,
+                                "maximum": 1
                             },
                             "y": {
                                 "type": "number",
-                                "default": 1
+                                "default": 1,
+                                "minimum": 0,
+                                "maximum": 1
                             },
                             "z": {
                                 "type": "number",
-                                "default": 1
+                                "default": 1,
+                                "minimum": 0,
+                                "maximum": 1
                             }
                         }
                     },
@@ -79,59 +80,27 @@ export namespace userSettings {
                         "default": {},
                         "type": "object",
                         "properties": {
+                            "useFilter": {
+                                "type": "boolean",
+                                "default": false
+                            },
                             "x": {
                                 "type": "number",
-                                "default": 1
+                                "default": 1,
+                                "minimum": 0,
+                                "maximum": 1
                             },
                             "y": {
                                 "type": "number",
-                                "default": 1
+                                "default": 1,
+                                "minimum": 0,
+                                "maximum": 1
                             },
                             "z": {
                                 "type": "number",
-                                "default": 1
-                            }
-                        }
-                    }
-                }
-            },
-            "sensorThresholds": {
-                "default": {},
-                "type": "object",
-                "properties": {
-                    "gyro": {
-                        "default": {},
-                        "type": "object",
-                        "properties": {
-                            "x": {
-                                "type": "number",
-                                "default": 1
-                            },
-                            "y": {
-                                "type": "number",
-                                "default": 1
-                            },
-                            "z": {
-                                "type": "number",
-                                "default": 1
-                            }
-                        }
-                    },
-                    "accelerometer": {
-                        "default": {},
-                        "type": "object",
-                        "properties": {
-                            "x": {
-                                "type": "number",
-                                "default": 0.01
-                            },
-                            "y": {
-                                "type": "number",
-                                "default": 0.01
-                            },
-                            "z": {
-                                "type": "number",
-                                "default": 0.01
+                                "default": 1,
+                                "minimum": 0,
+                                "maximum": 1
                             }
                         }
                     }

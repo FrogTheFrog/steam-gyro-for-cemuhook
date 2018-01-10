@@ -31,83 +31,27 @@ import { Subscription } from "rxjs";
                         <mat-checkbox formControlName="silentErrors">Silent errors</mat-checkbox>
                     </div>
                 </div>
-                <ng-container formGroupName="postScalers">
-                    <div class="gyro-post" formGroupName="gyro">
+                <ng-container formGroupName="filterCoefficients">
+                    <div class="gyro" formGroupName="gyro">
                         <mat-toolbar>
-                            Gyroscope post-scaler
+                            Gyroscope filter
                         </mat-toolbar>
                         <div class="container">
-                            <mat-form-field>
-                                <input matInput type="number" placeholder="X value" formControlName="x">
-                                <mat-error *ngIf="hasErrors('postScalers.gyro.x')">{{getErrorMsg('postScalers.gyro.x')}}</mat-error>
-                            </mat-form-field>
-                            <mat-form-field>
-                                <input matInput type="number" placeholder="Y value" formControlName="y">
-                                <mat-error *ngIf="hasErrors('postScalers.gyro.y')">{{getErrorMsg('postScalers.gyro.y')}}</mat-error>
-                            </mat-form-field>
-                            <mat-form-field>
-                                <input matInput type="number" placeholder="Z value" formControlName="z">
-                                <mat-error *ngIf="hasErrors('postScalers.gyro.z')">{{getErrorMsg('postScalers.gyro.z')}}</mat-error>
-                            </mat-form-field>
+                            <label>X value</label><mat-slider thumbLabel min="0" max="1" step="0.01" formControlName="x"></mat-slider>
+                            <label>Y value</label><mat-slider thumbLabel min="0" max="1" step="0.01" formControlName="y"></mat-slider>
+                            <label>Z value</label><mat-slider thumbLabel min="0" max="1" step="0.01" formControlName="z"></mat-slider>
+                            <mat-checkbox formControlName="useFilter">Use filter</mat-checkbox>
                         </div>
                     </div>
-                    <div class="accelerometer-post" formGroupName="accelerometer">
+                    <div class="accelerometer" formGroupName="accelerometer">
                         <mat-toolbar>
-                            Accelerometer post-scaler
+                            Accelerometer filter
                         </mat-toolbar>
                         <div class="container">
-                            <mat-form-field>
-                                <input matInput type="number" placeholder="X value" formControlName="x">
-                                <mat-error *ngIf="hasErrors('postScalers.accelerometer.x')">{{getErrorMsg('postScalers.accelerometer.x')}}</mat-error>
-                            </mat-form-field>
-                            <mat-form-field>
-                                <input matInput type="number" placeholder="Y value" formControlName="y">
-                                <mat-error *ngIf="hasErrors('postScalers.accelerometer.y')">{{getErrorMsg('postScalers.accelerometer.y')}}</mat-error>
-                            </mat-form-field>
-                            <mat-form-field>
-                                <input matInput type="number" placeholder="Z value" formControlName="z">
-                                <mat-error *ngIf="hasErrors('postScalers.accelerometer.z')">{{getErrorMsg('postScalers.accelerometer.z')}}</mat-error>
-                            </mat-form-field>
-                        </div>
-                    </div>
-                </ng-container>
-                <ng-container formGroupName="sensorThresholds">
-                    <div class="gyro-tresh" formGroupName="gyro">
-                        <mat-toolbar>
-                            Gyroscope threshold
-                        </mat-toolbar>
-                        <div class="container">
-                            <mat-form-field>
-                                <input matInput type="number" placeholder="X value" formControlName="x">
-                                <mat-error *ngIf="hasErrors('sensorThresholds.gyro.x')">{{getErrorMsg('sensorThresholds.gyro.x')}}</mat-error>
-                            </mat-form-field>
-                            <mat-form-field>
-                                <input matInput type="number" placeholder="Y value" formControlName="y">
-                                <mat-error *ngIf="hasErrors('sensorThresholds.gyro.y')">{{getErrorMsg('sensorThresholds.gyro.y')}}</mat-error>
-                            </mat-form-field>
-                            <mat-form-field>
-                                <input matInput type="number" placeholder="Z value" formControlName="z">
-                                <mat-error *ngIf="hasErrors('sensorThresholds.gyro.z')">{{getErrorMsg('sensorThresholds.gyro.z')}}</mat-error>
-                            </mat-form-field>
-                        </div>
-                    </div>
-                    <div class="accelerometer-tresh" formGroupName="accelerometer">
-                        <mat-toolbar>
-                            Accelerometer threshold
-                        </mat-toolbar>
-                        <div class="container">
-                            <mat-form-field>
-                                <input matInput type="number" placeholder="X value" formControlName="x">
-                                <mat-error *ngIf="hasErrors('sensorThresholds.accelerometer.x')">{{getErrorMsg('sensorThresholds.accelerometer.x')}}</mat-error>
-                            </mat-form-field>
-                            <mat-form-field>
-                                <input matInput type="number" placeholder="Y value" formControlName="y">
-                                <mat-error *ngIf="hasErrors('sensorThresholds.accelerometer.y')">{{getErrorMsg('sensorThresholds.accelerometer.y')}}</mat-error>
-                            </mat-form-field>
-                            <mat-form-field>
-                                <input matInput type="number" placeholder="Z value" formControlName="z">
-                                <mat-error *ngIf="hasErrors('sensorThresholds.accelerometer.z')">{{getErrorMsg('sensorThresholds.accelerometer.z')}}</mat-error>
-                            </mat-form-field>
+                            <label>X value</label><mat-slider thumbLabel min="0" max="1" step="0.01" formControlName="x"></mat-slider>
+                            <label>Y value</label><mat-slider thumbLabel min="0" max="1" step="0.01" formControlName="y"></mat-slider>
+                            <label>Z value</label><mat-slider thumbLabel min="0" max="1" step="0.01" formControlName="z"></mat-slider>
+                            <mat-checkbox formControlName="useFilter">Use filter</mat-checkbox>
                         </div>
                     </div>
                 </ng-container>
@@ -170,28 +114,19 @@ export class SettingsComponent implements OnInit {
                 port: [null, [this.patternValidator(/^\d*$/, 'Invalid port'), Validators.required]],
             }),
             silentErrors: [null],
-            postScalers: this.fb.group({
+            
+            filterCoefficients: this.fb.group({
                 gyro: this.fb.group({
                     x: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]],
                     y: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]],
-                    z: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]]
+                    z: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]],
+                    useFilter: [null]
                 }),
                 accelerometer: this.fb.group({
                     x: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]],
                     y: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]],
-                    z: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]]
-                })
-            }),
-            sensorThresholds: this.fb.group({
-                gyro: this.fb.group({
-                    x: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]],
-                    y: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]],
-                    z: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]]
-                }),
-                accelerometer: this.fb.group({
-                    x: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]],
-                    y: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]],
-                    z: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]]
+                    z: [null, [this.patternValidator(/^-?\d+(?:\.\d)?\d*$/, 'Invalid number'), Validators.required]],
+                    useFilter: [null]
                 })
             }),
             modifierVersion: [null]
@@ -206,32 +141,18 @@ export class SettingsComponent implements OnInit {
         }));
 
         let serverForm = this.settingsForm.get('server');
-        let gyroPostScalerForm = this.settingsForm.get('postScalers.gyro');
-        let accelerometerPostScalerForm = this.settingsForm.get('postScalers.accelerometer');
-        let gyroThresholdsForm = this.settingsForm.get('sensorThresholds.gyro');
-        let accelerometerThresholdsForm = this.settingsForm.get('sensorThresholds.accelerometer');
+        let gyroFilterCoefficientsForm = this.settingsForm.get('filterCoefficients.gyro');
+        let accelerometerFilterCoefficientsForm = this.settingsForm.get('filterCoefficients.accelerometer');
 
-        this.subscription.add(gyroPostScalerForm.valueChanges.subscribe((data: { x: number, y: number, z: number }) => {
-            if (gyroPostScalerForm.valid) {
-                ipcRenderer.send('updateGyroPostScalersReq', data);
+        this.subscription.add(gyroFilterCoefficientsForm.valueChanges.subscribe((data: { x: number, y: number, z: number }) => {
+            if (gyroFilterCoefficientsForm.valid) {
+                ipcRenderer.send('updateGyroFilterCoefficientsReq', data);
             }
         }));
 
-        this.subscription.add(accelerometerPostScalerForm.valueChanges.subscribe((data: { x: number, y: number, z: number }) => {
-            if (accelerometerPostScalerForm.valid) {
-                ipcRenderer.send('updateAccelerometerPostScalersReq', data);
-            }
-        }));
-
-        this.subscription.add(gyroThresholdsForm.valueChanges.subscribe((data: { x: number, y: number, z: number }) => {
-            if (gyroThresholdsForm.valid) {
-                ipcRenderer.send('updateGyroSensorThresholdsReq', data);
-            }
-        }));
-
-        this.subscription.add(accelerometerThresholdsForm.valueChanges.subscribe((data: { x: number, y: number, z: number }) => {
-            if (accelerometerThresholdsForm.valid) {
-                ipcRenderer.send('updateAccelerometerSensorThresholdsReq', data);
+        this.subscription.add(accelerometerFilterCoefficientsForm.valueChanges.subscribe((data: { x: number, y: number, z: number }) => {
+            if (accelerometerFilterCoefficientsForm.valid) {
+                ipcRenderer.send('updateAccelerometerFilterCoefficientsReq', data);
             }
         }));
 

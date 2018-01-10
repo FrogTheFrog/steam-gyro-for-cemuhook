@@ -70,8 +70,7 @@ let startServer = (settings?: { userSettings?: userSettings.type, userSettingsFi
         return new Promise<{ address: string, port: number }>((resolve, reject) => {
             try {
                 server.start(data.server.port, data.server.address, () => {
-                    controller.setPostScalers(data.postScalers);
-                    controller.setSensorThresholds(data.sensorThresholds);
+                    controller.setFilterCoefficients(data.filterCoefficients);
                     resolve(data.server);
                 });
             } catch (error) {
@@ -287,24 +286,14 @@ ipcMain.on('saveSettingsReq', (event: { preventDefault: () => void; sender: WebC
     });
 });
 
-ipcMain.on('updateGyroPostScalersReq', (event: { preventDefault: () => void; sender: WebContents; }, data: { x: number, y: number, z: number }) => {
-    currentSettings.postScalers.gyro = data;
-    controller.setPostScalers({ gyro: data });
+ipcMain.on('updateGyroFilterCoefficientsReq', (event: { preventDefault: () => void; sender: WebContents; }, data: userSettings.type['filterCoefficients']['gyro']) => {
+    currentSettings.filterCoefficients.gyro = data;
+    controller.setFilterCoefficients({ gyro: data });
 });
 
-ipcMain.on('updateAccelerometerPostScalersReq', (event: { preventDefault: () => void; sender: WebContents; }, data: { x: number, y: number, z: number }) => {
-    currentSettings.postScalers.accelerometer = data;
-    controller.setPostScalers({ accelerometer: data });
-});
-
-ipcMain.on('updateGyroSensorThresholdsReq', (event: { preventDefault: () => void; sender: WebContents; }, data: { x: number, y: number, z: number }) => {
-    currentSettings.sensorThresholds.gyro = data;
-    controller.setSensorThresholds({ gyro: data });
-});
-
-ipcMain.on('updateAccelerometerSensorThresholdsReq', (event: { preventDefault: () => void; sender: WebContents; }, data: { x: number, y: number, z: number }) => {
-    currentSettings.sensorThresholds.accelerometer = data;
-    controller.setSensorThresholds({ accelerometer: data });
+ipcMain.on('updateAccelerometerFilterCoefficientsReq', (event: { preventDefault: () => void; sender: WebContents; }, data: userSettings.type['filterCoefficients']['accelerometer']) => {
+    currentSettings.filterCoefficients.accelerometer = data;
+    controller.setFilterCoefficients({ accelerometer: data });
 });
 
 ipcMain.on('updateServerReq', (event: { preventDefault: () => void; sender: WebContents; }, data: { address: string, port: number }) => {

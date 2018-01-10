@@ -8,7 +8,7 @@ import { DatePipe, APP_BASE_HREF } from '@angular/common';
 // Material
 import {
     MatToolbarModule, MatIconModule, MatButtonModule, MatCardModule, MatFormFieldModule,
-    MatInputModule, MatCheckboxModule, MatTooltipModule, MatProgressSpinnerModule
+    MatInputModule, MatCheckboxModule, MatTooltipModule, MatProgressSpinnerModule, MatSliderModule
 } from '@angular/material';
 
 // Helpers
@@ -35,7 +35,8 @@ import { Routes } from './main.routing';
         MatInputModule,
         MatCheckboxModule,
         MatTooltipModule,
-        MatProgressSpinnerModule
+        MatProgressSpinnerModule,
+        MatSliderModule
     ],
     declarations: [].concat(
         angular.ngObjectsToArray(Components),

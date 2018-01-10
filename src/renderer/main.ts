@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import 'zone.js/dist/zone';
+import 'hammerjs/hammer.min.js';
 
 import { enableProdMode } from '@angular/core';
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';

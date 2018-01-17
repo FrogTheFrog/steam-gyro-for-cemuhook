@@ -73,8 +73,8 @@ import { Filter } from '../../lib/filter';
                 </ng-container>
                 <div class="toolbar">
                     <span class="fill-remaining-space"></span>
-                    <button mat-button (click)="restartServer()">Restart server</button>
-                    <button type="submit" mat-button color="primary">Save settings</button>
+                    <button mat-button>Restart server</button>
+                    <button mat-button color="primary">Save settings</button>
                 </div>
             </form>
         </div>

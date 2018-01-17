@@ -71,7 +71,8 @@ let startServer = (settings?: { userSettings?: userSettings.Type, userSettingsFi
         return new Promise<{ address: string, port: number }>((resolve, reject) => {
             try {
                 server.start(data.server.port, data.server.address, () => {
-                    controller.togglesFilters(data.enabledFilters);
+                    controller.toggleFilters(data.enabledFilters);
+                    controller.setFilters(data.filters);
                     resolve(data.server);
                 });
             } catch (error) {
@@ -79,7 +80,6 @@ let startServer = (settings?: { userSettings?: userSettings.Type, userSettingsFi
             }
         });
     }).then((data) => {
-        showRendererWindow();
         tray.displayBalloon({ title: 'UDP server started', content: `Running@${data.address}:${data.port}`, icon: iconPng });
         tray.setToolTip(`Server@${data.address}:${data.port}`);
     }).catch((error) => {

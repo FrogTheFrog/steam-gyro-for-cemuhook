@@ -268,11 +268,18 @@ export namespace SteamController {
             return this;
         }
 
-        togglesFilters(filters: { gyro?: boolean, accelerometer?: boolean }) {
+        toggleFilters(filters: { gyro?: boolean, accelerometer?: boolean }) {
             if (filters.gyro != undefined)
                 this.enabledFilters.gyro = filters.gyro;
             if (filters.accelerometer != undefined)
                 this.enabledFilters.accelerometer = filters.accelerometer;
+        }
+
+        setFilters(filters: { gyro?: Filter.Type | Filter.Type[], accelerometer?: Filter.Type | Filter.Type[] }) {
+            if (filters.gyro != undefined)
+                this.filters.gyro.removeFilter().addFilter(filters.gyro);
+            if (filters.accelerometer != undefined)
+                this.filters.accelerometer.removeFilter().addFilter(filters.accelerometer);
         }
 
         setHomeButtonBrightness(percentage: number) {
@@ -329,15 +336,6 @@ export namespace SteamController {
             }
             else
                 this.emit('error', err);
-        }
-
-        private IIR_Filter(input: Report['gyro'] | Report['accelerometer'], output: Report['gyro'] | Report['accelerometer'], field: string, alpha: number, minDeviation: number, maxDeviation: number) {
-            let delta = input[field] - output[field];
-
-            if (minDeviation <= Math.abs(delta) && Math.abs(delta) <= maxDeviation)
-                output[field] = output[field] + alpha * delta;
-            else
-                output[field] = input[field];
         }
 
         private handleData(data: Buffer) {

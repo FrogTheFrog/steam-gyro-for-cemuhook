@@ -44,8 +44,8 @@ export namespace Filter {
             return this;
         }
 
-        setOutputObject(input: DataType) {
-            this.input = input;
+        setOutputObject(output: DataType) {
+            this.output = output;
             return this;
         }
 
@@ -85,7 +85,7 @@ export namespace Filter {
             let deviations: number[] = new Array(this.dataFields.length);
             let mustBeFiltered: boolean[] = new Array(this.dataFields.length);
 
-            for (let i = 0; i < this.filter.length; i++) {
+            for (let i = 0; i < this.filters.length; i++) {
                 atLeastOneMustBeFiltered = false;
 
                 for (let j = 0; j < this.dataFields.length; j++) {

@@ -1,6 +1,6 @@
 import { Injectable, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
-import { ipcRenderer } from "electron";
+import { ipcRenderer } from "./../../lib/ipc.model";
 import { NonfatalError } from '../../lib/error.model';
 import { BehaviorSubject } from 'rxjs';
 
@@ -9,7 +9,7 @@ export class ErrorService {
     private latestError = new BehaviorSubject<NonfatalError>(undefined);
 
     constructor(private router: Router, private ngZone: NgZone) {
-        ipcRenderer.on('nonfatalError', (event: Event, error: NonfatalError) => {
+        ipcRenderer.on('nonfatalError', (event, error) => {
             this.ngZone.run(() => {
                 this.logError(error);
             });

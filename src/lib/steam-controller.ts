@@ -1,11 +1,12 @@
 import { HID, devices as hidDevices, Device as HidDevice } from "node-hid";
 import { SteamDevice } from "./steam-device"
 import { DualShock } from "./dualshock";
+import { userSettings } from "./settings.model";
+import { Filter } from "./filter";
 import * as microtime from "microtime";
 import * as long from "long";
 import * as _ from "lodash";
 import * as dgram from "dgram";
-import { userSettings } from "./settings.model";
 
 function bool(value: number) {
     return value !== 0;
@@ -17,39 +18,12 @@ enum HidEvent {
     BatteryUpdate = 0x0b04
 }
 
-class MovingAverageFilter {
-    private data: number[] = undefined;
-    private index: number = 0;
-
-    constructor(size: number = 15, initialValue: number = 0) {
-        if (size > 0)
-            this.data = new Array(size).fill(initialValue);
-        else
-            throw new RangeError('Invalid size provided. Must be above 0.')
-    }
-
-    addValue(value: number, returnAverage: boolean) {
-        this.data[this.index] = value;
-        if (++this.index === this.data.length)
-            this.index = 0;
-
-        if (returnAverage)
-            return this.average;
-    }
-
-    get average() {
-        let value = 0;
-        for (let i = 0; i < this.data.length; i++)
-            value += this.data[i];
-        return value / this.data.length;
-    }
-}
-
 export namespace SteamController {
     export interface Events extends DualShock.Events {
         open: { type: SteamDevice.Item['type'], info: SteamDevice.Item['info'] };
         connected: { type: SteamDevice.Item['type'], info: SteamDevice.Item['info'] };
         disconnected: { type: SteamDevice.Item['type'], info: SteamDevice.Item['info'] };
+        rawMotionData: { gyro: Report['gyro'], accelerometer: Report['accelerometer'] };
         SC_ReportByRef: Report;
         SC_Report: Report;
     }
@@ -203,31 +177,12 @@ export namespace SteamController {
         private report = emptySteamControllerReport();
         private steamDevice: SteamDevice.SteamDevice;
         private oldRawValues: { gyro: Report['gyro'], accelerometer: Report['accelerometer'] } = { gyro: { x: 0, y: 0, z: 0 }, accelerometer: { x: 0, y: 0, z: 0 } };
-        private filterCoefficients: userSettings.type['filterCoefficients'] = { gyro: { useFilter: false, x: 1, y: 1, z: 1 }, accelerometer: { useFilter: false, x: 1, y: 1, z: 1 } };
-        private filters = {
-            accelerometer: {
-                x: new MovingAverageFilter(),
-                y: new MovingAverageFilter(),
-                z: new MovingAverageFilter()
-            },
-            gyro: {
-                x: new MovingAverageFilter(),
-                y: new MovingAverageFilter(),
-                z: new MovingAverageFilter()
-            }
-        }
-        private motionSensors = {
-            accelerometer: true,
-            gyro: true,
-            quaternion: true
-        };
+        private enabledFilters = { gyro: false, accelerometer: false };
+        private filters = { gyro: new Filter.Manager(), accelerometer: new Filter.Manager() };
+        private motionSensors = { accelerometer: true, gyro: true, quaternion: true };
         private connectionTimestamp: number = 0;
         private closeOnDisconnect: boolean = false;
-        private watcher = {
-            activeOnly: false,
-            timeoutObject: undefined as NodeJS.Timer,
-            isWatching: false
-        };
+        private watcher = { activeOnly: false, timeoutObject: undefined as NodeJS.Timer, isWatching: false };
         private watcherCallback = () => {
             if (this.watcher.timeoutObject !== undefined) {
                 clearTimeout(this.watcher.timeoutObject);
@@ -237,6 +192,12 @@ export namespace SteamController {
             if (this.watcher.isWatching && !this.open({ activeOnly: this.watcher.activeOnly }).isOpen()) {
                 this.watcher.timeoutObject = global.setTimeout(this.watcherCallback.bind(this), 1000);
             }
+        }
+
+        constructor() {
+            super();
+            this.filters.accelerometer.setOutputObject(this.report.accelerometer);
+            this.filters.gyro.setOutputObject(this.report.gyro);
         }
 
         open(options?: { activeOnly?: boolean, autoClose?: boolean, devicePath?: string, newMAC?: boolean }) {
@@ -307,11 +268,11 @@ export namespace SteamController {
             return this;
         }
 
-        setFilterCoefficients(coefficients: { gyro?: userSettings.type['filterCoefficients']['gyro'], accelerometer?: userSettings.type['filterCoefficients']['accelerometer'] }) {
-            if (coefficients.gyro != undefined)
-                this.filterCoefficients.gyro = coefficients.gyro;
-            if (coefficients.accelerometer != undefined)
-                this.filterCoefficients.accelerometer = coefficients.accelerometer;
+        togglesFilters(filters: { gyro?: boolean, accelerometer?: boolean }) {
+            if (filters.gyro != undefined)
+                this.enabledFilters.gyro = filters.gyro;
+            if (filters.accelerometer != undefined)
+                this.enabledFilters.accelerometer = filters.accelerometer;
         }
 
         setHomeButtonBrightness(percentage: number) {
@@ -368,6 +329,15 @@ export namespace SteamController {
             }
             else
                 this.emit('error', err);
+        }
+
+        private IIR_Filter(input: Report['gyro'] | Report['accelerometer'], output: Report['gyro'] | Report['accelerometer'], field: string, alpha: number, minDeviation: number, maxDeviation: number) {
+            let delta = input[field] - output[field];
+
+            if (minDeviation <= Math.abs(delta) && Math.abs(delta) <= maxDeviation)
+                output[field] = output[field] + alpha * delta;
+            else
+                output[field] = input[field];
         }
 
         private handleData(data: Buffer) {
@@ -479,37 +449,21 @@ export namespace SteamController {
                     index += 2;
                     report.quaternion.w = data.readInt16LE(index, true) * minValues.quaternion;
 
-                    //////////////////////////////FILTERING IS DONE HERE
-
-                    if (this.filterCoefficients.accelerometer.useFilter && Math.abs(accelerometer.x - report.accelerometer.x) < scales.accelerometer * this.filterCoefficients.gyro.y /*<-something*/){
-                        //IIRF
-                        report.accelerometer.x += this.filterCoefficients.accelerometer.x /*ALPHA*/ * (accelerometer.x - report.accelerometer.x);
-                        report.accelerometer.y += this.filterCoefficients.accelerometer.x /*ALPHA*/ * (accelerometer.y - report.accelerometer.y);
-                        report.accelerometer.z += this.filterCoefficients.accelerometer.x /*ALPHA*/ * (accelerometer.z - report.accelerometer.z);
-                    }
+                    if (this.enabledFilters.accelerometer)
+                        this.filters.accelerometer.setInputObject(accelerometer).filter();
                     else {
                         report.accelerometer.x = accelerometer.x;
                         report.accelerometer.y = accelerometer.y;
                         report.accelerometer.z = accelerometer.z;
                     }
 
-                    if (this.filterCoefficients.gyro.useFilter && Math.abs(accelerometer.x - report.accelerometer.x) < scales.accelerometer * this.filterCoefficients.gyro.y /*<-something*/){
-                        /* //MAF
-                        report.gyro.x = this.filters.gyro.x.addValue(gyro.x, true);
-                        report.gyro.y = this.filters.gyro.y.addValue(gyro.y, true);
-                        report.gyro.z = this.filters.gyro.z.addValue(gyro.z, true); */
-                        //IIRF
-                        report.gyro.x += this.filterCoefficients.gyro.x /*ALPHA*/ * (gyro.x - report.gyro.x);
-                        report.gyro.y += this.filterCoefficients.gyro.x /*ALPHA*/ * (gyro.y - report.gyro.y);
-                        report.gyro.z += this.filterCoefficients.gyro.x /*ALPHA*/ * (gyro.z - report.gyro.z);
-                    }
+                    if (this.enabledFilters.gyro)
+                        this.filters.gyro.setInputObject(gyro).filter();
                     else {
                         report.gyro.x = gyro.x;
                         report.gyro.y = gyro.y;
                         report.gyro.z = gyro.z;
                     }
-
-                    //////////////////////////////END
 
                     if (this.isSensorDataStuck(accelerometer, gyro, report.quaternion)) {
                         try {
@@ -565,6 +519,9 @@ export namespace SteamController {
                     if (this.listenerCount('SC_Report') > 0) {
                         clonedReport = _.cloneDeep(report);
                         this.emit('SC_Report', clonedReport);
+                    }
+                    if (this.listenerCount('rawMotionData') > 0) {
+                        this.emit('rawMotionData', this.oldRawValues);
                     }
                 }
 

@@ -1,18 +1,18 @@
 import { Injectable } from '@angular/core';
-import { ipcRenderer } from "electron";
+import { ipcRenderer } from "./../../lib/ipc.model";
 import { userSettings } from "../../lib/settings.model";
 import { Subject } from 'rxjs';
 
 @Injectable()
 export class SettingsService {
-    private userSettings = new Subject<userSettings.type>();
+    private userSettings = new Subject<userSettings.Type>();
     private retrievingData: boolean = false;
 
     constructor() {
-        ipcRenderer.on('userSettingsResp', (event: Event, settings: userSettings.type) => {
+        ipcRenderer.on('userSettings', (event, settings) => {
             if (settings === undefined) {
                 setTimeout(() => {
-                    ipcRenderer.send('userSettingsReq');
+                    ipcRenderer.send('getUserSettings', void 0);
                 }, 500);
             }
             else {
@@ -25,7 +25,7 @@ export class SettingsService {
     get settings() {
         if (!this.retrievingData) {
             this.retrievingData = true;
-            ipcRenderer.send('userSettingsReq');
+            ipcRenderer.send('getUserSettings', void 0);
         }
 
         return this.userSettings.asObservable();
@@ -34,7 +34,7 @@ export class SettingsService {
     updateSettings() {
         if (!this.retrievingData) {
             this.retrievingData = true;
-            ipcRenderer.send('userSettingsReq');
+            ipcRenderer.send('getUserSettings', void 0);
         }
     }
 }

@@ -1,29 +1,60 @@
 import { json } from "./helpers";
+import { Filter } from "./filter";
 import * as _ from "lodash";
 
 export namespace userSettings {
-    export interface type {
+    export interface Type {
         server: {
             address: string,
             port: number
         },
         silentErrors: boolean,
-        filterCoefficients: {
-            gyro: {
-                useFilter: boolean,
-                x: number,
-                y: number,
-                z: number
-            }, accelerometer: {
-                useFilter: boolean,
-                x: number,
-                y: number,
-                z: number
-            }
+        enabledFilters: {
+            gyro: boolean,
+            accelerometer: boolean
+        }
+        filters: {
+            gyro: Filter.Type[], 
+            accelerometer: Filter.Type[]
         }
     }
 
     export const schema = {
+        "definitions": {
+            "filterType": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "default": "None"
+                    },
+                    "filterAllAtOnce": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "deviation": {
+                        "default": {},
+                        "type": "object",
+                        "properties": {
+                            "min": {
+                                "type": "number",
+                                "default": 0
+                            },
+                            "max": {
+                                "type": "number",
+                                "default": 0
+                            }
+                        }
+                    },
+                    "coefficients": {
+                        "type": "array",
+                        "items": {
+                            "type": "number"
+                        }
+                    }
+                }
+            }
+        },
         "type": "object",
         "properties": {
             "server": {
@@ -40,68 +71,40 @@ export namespace userSettings {
                     },
                 }
             },
-            "silentErrors": {
-                "type": "boolean",
-                "default": false
-            },
-            "filterCoefficients": {
+            "enabledFilters": {
                 "default": {},
                 "type": "object",
                 "properties": {
                     "gyro": {
-                        "default": {},
-                        "type": "object",
-                        "properties": {
-                            "useFilter": {
-                                "type": "boolean",
-                                "default": false
-                            },
-                            "x": {
-                                "type": "number",
-                                "default": 1,
-                                "minimum": 0,
-                                "maximum": 1
-                            },
-                            "y": {
-                                "type": "number",
-                                "default": 1,
-                                "minimum": 0,
-                                "maximum": 1
-                            },
-                            "z": {
-                                "type": "number",
-                                "default": 1,
-                                "minimum": 0,
-                                "maximum": 1
-                            }
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "accelerometer": {
+                        "type": "boolean",
+                        "default": false
+                    }
+                }
+            },
+            "silentErrors": {
+                "type": "boolean",
+                "default": false
+            },
+            "filters": {
+                "default": {},
+                "type": "object",
+                "properties": {
+                    "gyro": {
+                        "default": [] as any,
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/filterType"
                         }
                     },
                     "accelerometer": {
-                        "default": {},
-                        "type": "object",
-                        "properties": {
-                            "useFilter": {
-                                "type": "boolean",
-                                "default": false
-                            },
-                            "x": {
-                                "type": "number",
-                                "default": 1,
-                                "minimum": 0,
-                                "maximum": 1
-                            },
-                            "y": {
-                                "type": "number",
-                                "default": 1,
-                                "minimum": 0,
-                                "maximum": 1
-                            },
-                            "z": {
-                                "type": "number",
-                                "default": 1,
-                                "minimum": 0,
-                                "maximum": 1
-                            }
+                        "default": [] as any,
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/filterType"
                         }
                     }
                 }
@@ -112,7 +115,7 @@ export namespace userSettings {
         }
     }
 
-    export const modifier: json.ValidatorModifier<type> = {
+    export const modifier: json.ValidatorModifier<Type> = {
         controlProperty: 'modifierVersion',
         latestVersion: 0,
         fields: {

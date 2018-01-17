@@ -53,14 +53,15 @@ $foreground: map-get($dark-theme, foreground);
             color: mat-color($foreground, secondary-text);
         }
 
-        > div{
+        /deep/ .mat-tab-label {
+            height: 24px;
+            min-width: 24px;
+        }
+
+        > div {
             @include mat-elevation(2);
             background-color: mat-color($background, card);
             min-width: 80px;
-
-            mat-toolbar {
-                font-size: 0.9em;
-            }
 
             > .container{
                 padding: 1em;
@@ -68,15 +69,20 @@ $foreground: map-get($dark-theme, foreground);
                 display: flex;
                 flex-direction: column;
 
-                > * {
+                /* > * {
                     width: 100%;
-                }
+                } */
             }
         }
     }
 
     > .container {
         margin: auto 0;
+    }
+
+    mat-toolbar {
+        height: 48px;
+        font-size: 0.8em;
     }
 
     &::-webkit-scrollbar {

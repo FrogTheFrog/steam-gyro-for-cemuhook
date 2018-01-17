@@ -3,7 +3,7 @@ import { SteamDevicesService } from '../services/steam-devices.service';
 import { Component, ChangeDetectionStrategy, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { DataSource } from '@angular/cdk/collections';
 import { SteamDevice } from '../../lib/steam-device';
-import { ipcRenderer } from "electron";
+import { ipcRenderer } from "./../../lib/ipc.model";
 import { Subscription } from 'rxjs';
 import { SteamController } from "../../lib/steam-controller";
 
@@ -223,19 +223,19 @@ export class SteamDevicesComponent implements OnInit, OnDestroy {
 
     private closeDevice() {
         this.waitForChange = true;
-        ipcRenderer.send('deviceCloseReq');
+        ipcRenderer.send('closeSteamDevice', void 0);
     }
 
     private openDevice(devicePath: string) {
         this.waitForChange = true;
-        ipcRenderer.send('deviceOpenReq', devicePath);
+        ipcRenderer.send('openSteamDevice', void 0);
     }
 
     private startDataStream() {
-        ipcRenderer.send('dataStreamStartReq');
+        ipcRenderer.send('startDataSteam', void 0);
     }
 
     private stopDataStream() {
-        ipcRenderer.send('dataStreamStopReq');
+        ipcRenderer.send('stopDataSteam', void 0);
     }
 }

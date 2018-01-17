@@ -1,15 +1,16 @@
-import { app, Menu, Tray, dialog, nativeImage, BrowserWindow, shell, ipcMain, WebContents } from 'electron';
+import { app, Menu, Tray, dialog, nativeImage, BrowserWindow, shell, WebContents } from 'electron';
 import { UdpServer } from './lib/udp-server';
 import { SteamController } from "./lib/steam-controller";
 import { SteamDevice } from './lib/steam-device'
 import { json, validator } from "./lib/helpers";
 import { userSettings } from "./lib/settings.model";
+import { NonfatalError } from './lib/error.model';
+import { ipcMain } from './lib/ipc.model';
 import * as _ from 'lodash';
 import * as winston from "winston";
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as url from 'url';
-import { NonfatalError } from './lib/error.model';
 
 let tray: Tray = null;
 let contextMenu: Menu = null;
@@ -22,7 +23,7 @@ let iconPng: nativeImage = nativeImage.createFromBuffer(icon.toPNG());
 
 let userDataDir: string = process.env.PORTABLE_EXECUTABLE_DIR || '';
 let defaultUserSettingsFile = path.join(userDataDir, 'steam-gyro.json');
-let currentSettings: userSettings.type = undefined;
+let currentSettings: userSettings.Type = undefined;
 
 let jsonValidator = new json.validator(userSettings.schema, userSettings.modifier);
 
@@ -35,10 +36,10 @@ server.addController(controller);
 let readUserSettings = (filePath: string) => {
     let doNotSaveFile = true;
 
-    return json.read(filePath, undefined).then((data: userSettings.type) => {
+    return json.read(filePath, undefined).then((data: userSettings.Type) => {
         if (data === undefined) {
             doNotSaveFile = false;
-            data = {} as userSettings.type;
+            data = {} as userSettings.Type;
         }
 
         jsonValidator.validate(data);
@@ -63,14 +64,14 @@ let readUserSettings = (filePath: string) => {
 }
 
 // Start, restart server
-let startServer = (settings?: { userSettings?: userSettings.type, userSettingsFilePath?: string }) => {
+let startServer = (settings?: { userSettings?: userSettings.Type, userSettingsFilePath?: string }) => {
     return Promise.resolve().then(() => {
         return _.get(settings, 'userSettings') || readUserSettings(_.get(settings, 'userSettingsFilePath') || defaultUserSettingsFile);
     }).then((data) => {
         return new Promise<{ address: string, port: number }>((resolve, reject) => {
             try {
                 server.start(data.server.port, data.server.address, () => {
-                    controller.setFilterCoefficients(data.filterCoefficients);
+                    controller.togglesFilters(data.enabledFilters);
                     resolve(data.server);
                 });
             } catch (error) {
@@ -78,10 +79,9 @@ let startServer = (settings?: { userSettings?: userSettings.type, userSettingsFi
             }
         });
     }).then((data) => {
-        if (data !== undefined) {
-            tray.displayBalloon({ title: 'UDP server started', content: `Running@${data.address}:${data.port}`, icon: iconPng });
-            tray.setToolTip(`Server@${data.address}:${data.port}`);
-        }
+        showRendererWindow();
+        tray.displayBalloon({ title: 'UDP server started', content: `Running@${data.address}:${data.port}`, icon: iconPng });
+        tray.setToolTip(`Server@${data.address}:${data.port}`);
     }).catch((error) => {
         winston.error('FATAL ERROR!');
         winston.error(error);
@@ -166,7 +166,7 @@ let showRendererWindow = (error?: NonfatalError) => {
             rendererWindow = null;
         });
 
-        ipcMain.once('angular-loaded', () => {
+        ipcMain.once('angularLoaded', () => {
             if (error !== undefined)
                 rendererWindow.webContents.send('nonfatalError', error);
 
@@ -201,7 +201,7 @@ winston.add(winston.transports.File, { filename: path.join(userDataDir, 'steam-g
 server.on('error', (data) => {
     if (data.error instanceof Error) {
         let error: Error & { code: string | number } = data.error as any;
-        let nonfatalError: NonfatalError = { 
+        let nonfatalError: NonfatalError = {
             title: `Whoops! You have encountered "${error.code}" error.`,
             description: undefined,
             error: {
@@ -265,69 +265,39 @@ app.on('window-all-closed', (event: Event) => {
 
 // Inter-process communication
 
-ipcMain.on('nonfatalError', (event: { preventDefault: () => void; sender: WebContents; }, data: NonfatalError) => {
+let dataStreamCallback = (data: SteamController.Report) => {
+    if (rendererWindow !== null)
+        rendererWindow.webContents.send('dataStream', data);
+};
+
+ipcMain.on('nonfatalError', (event, data) => {
     winston.error(data.error.stack);
-});
-
-ipcMain.on('restartServer', (event: { preventDefault: () => void; sender: WebContents; }) => {
+}).on('restartServer', (event) => {
     startServer({ userSettings: currentSettings });
-});
-
-ipcMain.on('userSettingsReq', (event: { preventDefault: () => void; sender: WebContents; }) => {
-    event.sender.send('userSettingsResp', currentSettings);
-});
-
-ipcMain.on('saveSettingsReq', (event: { preventDefault: () => void; sender: WebContents; }, data: userSettings.type) => {
+}).on('getUserSettings', (event) => {
+    event.sender.send('userSettings', currentSettings);
+}).on('saveUserSettings', (event, data) => {
     currentSettings = data;
     json.write(defaultUserSettingsFile, currentSettings).then().catch((error) => {
         winston.error('FATAL ERROR!');
         winston.error(error);
         exitApp(error);
     });
-});
-
-ipcMain.on('updateGyroFilterCoefficientsReq', (event: { preventDefault: () => void; sender: WebContents; }, data: userSettings.type['filterCoefficients']['gyro']) => {
-    currentSettings.filterCoefficients.gyro = data;
-    controller.setFilterCoefficients({ gyro: data });
-});
-
-ipcMain.on('updateAccelerometerFilterCoefficientsReq', (event: { preventDefault: () => void; sender: WebContents; }, data: userSettings.type['filterCoefficients']['accelerometer']) => {
-    currentSettings.filterCoefficients.accelerometer = data;
-    controller.setFilterCoefficients({ accelerometer: data });
-});
-
-ipcMain.on('updateServerReq', (event: { preventDefault: () => void; sender: WebContents; }, data: { address: string, port: number }) => {
+}).on('updateServer', (event, data) => {
     currentSettings.server = data;
-});
-
-ipcMain.on('updateErrorSettingsReq', (event: { preventDefault: () => void; sender: WebContents; }, silentErrors: boolean) => {
+}).on('toggleSilentErrors', (event, silentErrors) => {
     currentSettings.silentErrors = silentErrors;
-});
-
-ipcMain.on('steamDevicesReq', (event: { preventDefault: () => void; sender: WebContents; }) => {
-    event.sender.send('steamDevicesResp', SteamDevice.SteamDevice.getItems(true).concat(SteamDevice.SteamDevice.getExcludedItems()));
-});
-
-ipcMain.on('deviceCloseReq', (event: { preventDefault: () => void; sender: WebContents; }) => {
+}).on('getSteamDevices', (event) => {
+    event.sender.send('steamDevices', SteamDevice.SteamDevice.getItems(true).concat(SteamDevice.SteamDevice.getExcludedItems()));
+}).on('closeSteamDevice', (event) => {
     controller.close();
     event.sender.send('deviceChanged', SteamDevice.SteamDevice.getItems(true).concat(SteamDevice.SteamDevice.getExcludedItems()));
-});
-
-ipcMain.on('deviceOpenReq', (event: { preventDefault: () => void; sender: WebContents; }, devicePath: string) => {
+}).on('openSteamDevice', (event, devicePath) => {
     controller.open({ activeOnly: false, autoClose: true, devicePath });
     event.sender.send('deviceChanged', SteamDevice.SteamDevice.getItems(true).concat(SteamDevice.SteamDevice.getExcludedItems()));
-});
-
-let dataStreamCallback = (data: SteamController.Report) => {
-    if (rendererWindow !== null)
-        rendererWindow.webContents.send('dataStream', data);
-}
-
-ipcMain.on('dataStreamStartReq', (event: { preventDefault: () => void; sender: WebContents; }) => {
+}).on('startDataSteam', (event) => {
     if (controller.listeners('SC_ReportByRef').length === 0)
         controller.on('SC_ReportByRef', dataStreamCallback);
-});
-
-ipcMain.on('dataStreamStopReq', (event: { preventDefault: () => void; sender: WebContents; }) => {
+}).on('stopDataSteam', (event) => {
     controller.removeListener('SC_ReportByRef', dataStreamCallback);
 });

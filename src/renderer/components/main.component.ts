@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, OnInit, OnDestroy, Renderer2, Inject } from '@angular/core';
 import { DOCUMENT } from '@angular/platform-browser';
-import { remote, ipcRenderer, BrowserWindow } from 'electron';
+import { remote, BrowserWindow } from 'electron';
+import { ipcRenderer } from "./../../lib/ipc.model";
 import { WindowService } from '../services';
 import { Subscription } from 'rxjs';
 
@@ -42,7 +43,7 @@ export class MainComponent implements OnInit, OnDestroy {
         if (!this.windowService.window.isMaximized())
             this.renderer.addClass(this.document.body, 'window-resize-border');
 
-        ipcRenderer.send('angular-loaded');
+        ipcRenderer.send('angularLoaded', void 0);
     }
 
     ngOnDestroy() {

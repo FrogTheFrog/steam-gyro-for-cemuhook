@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ipcRenderer } from "electron";
+import { ipcRenderer } from "./../../lib/ipc.model";
 import { SteamDevice } from "../../lib/steam-device";
 import { SteamController } from "../../lib/steam-controller";
 import { Subject, BehaviorSubject } from 'rxjs';
@@ -13,15 +13,15 @@ export class SteamDevicesService {
     private retrievingData: boolean = false;
 
     constructor() {
-        ipcRenderer.on('steamDevicesResp', (event: Event, items: SteamDevice.Item[]) => {
+        ipcRenderer.on('steamDevices', (event, items) => {
             this.retrievingData = false;
             if (!_.isEqual(this.steamItems.getValue(), items))
                 this.steamItems.next(items);
-        }).on('deviceChanged', (event: Event, items: SteamDevice.Item[]) => {
+        }).on('deviceChanged', (event, items) => {
             this.deviceChanged.next();
             if (!this.retrievingData && !_.isEqual(this.steamItems.getValue(), items))
                 this.steamItems.next(items);
-        }).on('dataStream', (event: Event, data: SteamController.Report) => {
+        }).on('dataStream', (event, data) => {
             this.deviceDataStream.next(data);
         });
     }
@@ -41,7 +41,7 @@ export class SteamDevicesService {
     updateItems() {
         if (!this.retrievingData) {
             this.retrievingData = true;
-            ipcRenderer.send('steamDevicesReq');
+            ipcRenderer.send('getSteamDevices', void 0);
         }
     }
 }

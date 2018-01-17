@@ -10,7 +10,7 @@ let clientConfig = {
     target: 'electron-renderer',
     entry: {
         renderer: './renderer/main.ts',
-        polyfill: ['reflect-metadata', 'zone.js/dist/zone']
+        polyfill: ['core-js/es7/reflect', 'zone.js/dist/zone', 'hammerjs']
     },
     context: path.resolve(__dirname, '..', 'src'),
     output: {

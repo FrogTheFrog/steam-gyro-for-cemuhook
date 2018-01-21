@@ -448,7 +448,7 @@ export namespace SteamController {
                     report.quaternion.w = data.readInt16LE(index, true) * minValues.quaternion;
 
                     if (this.enabledFilters.accelerometer)
-                        this.filters.accelerometer.setInputObject(accelerometer).filter();
+                        this.filters.accelerometer.setInputObject(accelerometer).filter(time, { input: gyro, output: report.gyro });
                     else {
                         report.accelerometer.x = accelerometer.x;
                         report.accelerometer.y = accelerometer.y;
@@ -456,7 +456,7 @@ export namespace SteamController {
                     }
 
                     if (this.enabledFilters.gyro)
-                        this.filters.gyro.setInputObject(gyro).filter();
+                        this.filters.gyro.setInputObject(gyro).filter(time, { input: accelerometer, output: report.accelerometer });
                     else {
                         report.gyro.x = gyro.x;
                         report.gyro.y = gyro.y;

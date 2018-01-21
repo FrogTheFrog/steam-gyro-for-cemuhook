@@ -43,6 +43,10 @@ export namespace userSettings {
                             "max": {
                                 "type": "number",
                                 "default": 0
+                            },
+                            "useProvidedData": {
+                                "type": "boolean",
+                                "default": false
                             }
                         }
                     },

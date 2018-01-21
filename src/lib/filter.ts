@@ -1,5 +1,6 @@
 import { TypedEventEmitter } from "./typed-event-emitter";
 import * as _ from "lodash";
+import * as microtime from "microtime";
 
 export namespace Filter {
     export interface Type extends FilterData {
@@ -12,7 +13,8 @@ export namespace Filter {
         filterAllAtOnce: boolean,
         deviation: {
             min: number,
-            max: number
+            max: number,
+            useProvidedData: boolean
         },
         coefficients: number[]
     }
@@ -27,10 +29,10 @@ export namespace Filter {
         values: { type: Type['type'], index: number, data: DataType };
     }
 
-    type filterFn = (field: string, deviation: number) => void;
+    type filterFn = (field: string, deviationModulus: number, time: number, deviationData: { input: DataType, output: DataType }) => void;
 
     export function getAvailableFilters() {
-        return <FilterType[]> ['None', 'Hysteresis', 'Low-pass'];
+        return <FilterType[]>['None', 'Hysteresis', 'Low-pass'];
     }
 
     export class Manager extends TypedEventEmitter<Events> {
@@ -79,18 +81,28 @@ export namespace Filter {
             return this;
         }
 
-        filter() {
+        filter(filterTime?: number, deviationData?: { input: DataType, output: DataType }) {
             let emitValues: boolean = false;
             let atLeastOneMustBeFiltered: boolean = false;
             let deviations: number[] = new Array(this.dataFields.length);
             let mustBeFiltered: boolean[] = new Array(this.dataFields.length);
 
+            if (filterTime === undefined)
+                filterTime = microtime.now();
+
+            if (deviationData !== undefined)
+                deviationData = _.cloneDeep(deviationData);
+
             for (let i = 0; i < this.filters.length; i++) {
                 atLeastOneMustBeFiltered = false;
 
                 for (let j = 0; j < this.dataFields.length; j++) {
-                    deviations[j] = this.input[this.dataFields[j]] - this.output[this.dataFields[j]];
-                    mustBeFiltered[j] = this.filters[i].deviation.min <= Math.abs(deviations[j]) && Math.abs(deviations[j]) <= this.filters[i].deviation.max;
+                    if (this.filters[i].deviation.useProvidedData && deviationData !== undefined)
+                        deviations[j] = Math.abs(deviationData.input[this.dataFields[j]] - deviationData.output[this.dataFields[j]]);
+                    else
+                        deviations[j] = Math.abs(this.input[this.dataFields[j]] - this.output[this.dataFields[j]]);
+
+                    mustBeFiltered[j] = this.filters[i].deviation.min <= deviations[j] && deviations[j] <= this.filters[i].deviation.max;
                     if (mustBeFiltered[j])
                         atLeastOneMustBeFiltered = true;
                 }
@@ -98,12 +110,12 @@ export namespace Filter {
                 if (atLeastOneMustBeFiltered) {
                     if (this.filters[i].filterAllAtOnce) {
                         for (let j = 0; j < this.dataFields.length; j++)
-                            this.filters[i].fn(this.dataFields[j], deviations[j]);
+                            this.filters[i].fn(this.dataFields[j], deviations[j], filterTime, deviationData);
                     }
                     else {
                         for (let j = 0; j < this.dataFields.length; j++) {
                             if (mustBeFiltered[j])
-                                this.filters[i].fn(this.dataFields[j], deviations[j]);
+                                this.filters[i].fn(this.dataFields[j], deviations[j], filterTime, deviationData);
                             else
                                 this.output[this.dataFields[j]] = this.input[this.dataFields[j]];
                         }
@@ -125,11 +137,23 @@ export namespace Filter {
         private generateFilterFn(index: number, type: FilterType) {
             switch (type) {
                 case 'Low-pass':
-                    return (field: string, deviation: number) => { this.IIR_Filter(field, deviation, this.filters[index].coefficients[0]); };
-                case 'Hysteresis':
-                    return (field: string, deviation: number) => { };
+                    return (field: string, deviationModulus: number, time: number, deviationData: { input: DataType, output: DataType }) => {
+                        this.output[field] = this.output[field] + this.filters[index].coefficients[0] * (this.input[field] - this.output[field]);
+                    };
+                case 'Hysteresis': {
+                    let self = this;
+                    return function (field: string, deviationModulus: number, time: number, deviationData: { input: DataType, output: DataType }) {
+                        if (this.oldTime === undefined && deviationModulus > self.filters[index].coefficients[0])
+                            this.oldTime = time;
+
+                        if (time - this.oldTime < self.filters[index].coefficients[1])
+                            self.output[field] = self.input[field];
+                        else
+                            this.oldTime = undefined;
+                    };
+                }
                 case 'None':
-                    return (field: string, deviation: number) => { this.output[field] = this.input[field] };
+                    return (field: string, deviationModulus: number, time: number, deviationData: { input: DataType, output: DataType }) => { this.output[field] = this.input[field] };
                 default:
                     throw new Error('Invalid filter type');
             }
@@ -137,10 +161,6 @@ export namespace Filter {
 
         private generateFilter(index: number, data: Type) {
             return Object.assign({ fn: this.generateFilterFn(index, data.type) }, data);
-        }
-
-        private IIR_Filter(field: string, delta: number, alpha: number) {
-            this.output[field] = this.output[field] + alpha * delta;
         }
     }
 }

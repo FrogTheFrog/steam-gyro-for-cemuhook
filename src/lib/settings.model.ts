@@ -14,7 +14,7 @@ export namespace userSettings {
             accelerometer: boolean
         }
         filters: {
-            gyro: Filter.Type[], 
+            gyro: Filter.Type[],
             accelerometer: Filter.Type[]
         }
     }
@@ -26,7 +26,8 @@ export namespace userSettings {
                 "properties": {
                     "type": {
                         "type": "string",
-                        "default": "None"
+                        "default": "None",
+                        "enum": Filter.getAvailableFilters()
                     },
                     "filterAllAtOnce": {
                         "type": "boolean",
@@ -54,6 +55,18 @@ export namespace userSettings {
                         "type": "array",
                         "items": {
                             "type": "number"
+                        },
+                        "select": { "$data": "1/type" },
+                        "selectCases": {
+                            "None": {
+                                "minItems": 0
+                            },
+                            "Hysteresis": {
+                                "minItems": 2
+                            },
+                            "Low-pass": {
+                                "minItems": 1
+                            }
                         }
                     }
                 }
@@ -85,7 +98,7 @@ export namespace userSettings {
                     },
                     "accelerometer": {
                         "type": "boolean",
-                        "default": false
+                        "default": true
                     }
                 }
             },
@@ -98,14 +111,27 @@ export namespace userSettings {
                 "type": "object",
                 "properties": {
                     "gyro": {
-                        "default": [] as any,
+                        "default": <any[]>[],
                         "type": "array",
                         "items": {
                             "$ref": "#/definitions/filterType"
                         }
                     },
                     "accelerometer": {
-                        "default": [] as any,
+                        "default": [
+                            {
+                                "type": "Low-pass",
+                                "filterAllAtOnce": false,
+                                "deviation": {
+                                    "min": 0,
+                                    "max": 0.8,
+                                    "useProvidedData": true
+                                },
+                                "coefficients": [
+                                    0.07
+                                ]
+                            }
+                        ],
                         "type": "array",
                         "items": {
                             "$ref": "#/definitions/filterType"

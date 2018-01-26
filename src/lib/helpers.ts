@@ -108,11 +108,13 @@ export namespace json {
     }
 
     export class validator<T = any> {
-        private static ajv = new Ajv({ removeAdditional: 'all', useDefaults: true });
+        private static ajv = new Ajv({ removeAdditional: 'all', useDefaults: true, $data: true });
         private validationFn: Ajv.ValidateFunction;
         private modifier: ValidatorModifier<T>;
 
         constructor(schema?: any, modifier?: ValidatorModifier<T>) {
+            require('ajv-keywords')(validator.ajv, 'select');
+
             this.setSchema(schema);
 
             if (modifier !== undefined)

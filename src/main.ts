@@ -42,11 +42,15 @@ let readUserSettings = (filePath: string) => {
             data = {} as userSettings.Type;
         }
 
+        let dataBeforeValidation = _.cloneDeep(data);
+
         jsonValidator.validate(data);
         if (jsonValidator.errors && jsonValidator.errors.length > 0)
             throw jsonValidator.errors;
-        else
+        else {
+            doNotSaveFile = _.isEqual(dataBeforeValidation, data);
             return data;
+        }
     }).then((data) => {
         if (validator.isValidIPv4(data.server.address))
             return data;

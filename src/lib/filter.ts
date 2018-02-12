@@ -143,13 +143,16 @@ export namespace Filter {
                 case 'Hysteresis': {
                     let self = this;
                     return function (field: string, deviationModulus: number, time: number, deviationData: { input: DataType, output: DataType }) {
-                        if (this.oldTime === undefined && deviationModulus > self.filters[index].coefficients[0])
-                            this.oldTime = time;
-
-                        if (time - this.oldTime < self.filters[index].coefficients[1])
-                            self.output[field] = self.input[field];
-                        else
-                            this.oldTime = undefined;
+                        if (this.oldTime === undefined) {
+                            if (deviationModulus > self.filters[index].coefficients[0])
+                                this.oldTime = time;
+                        }
+                        else {
+                            if (time - this.oldTime < self.filters[index].coefficients[1])
+                                self.output[field] = self.input[field];
+                            else
+                                this.oldTime = undefined;
+                        }
                     };
                 }
                 case 'None':

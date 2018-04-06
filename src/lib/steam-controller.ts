@@ -183,6 +183,7 @@ export namespace SteamController {
         private connectionTimestamp: number = 0;
         private closeOnDisconnect: boolean = false;
         private watcher = { activeOnly: false, timeoutObject: undefined as NodeJS.Timer, isWatching: false };
+        private sensorCheck = { packetCounter: 0 };
         private watcherCallback = () => {
             if (this.watcher.timeoutObject !== undefined) {
                 clearTimeout(this.watcher.timeoutObject);
@@ -463,7 +464,7 @@ export namespace SteamController {
                         report.gyro.z = gyro.z;
                     }
 
-                    if (this.isSensorDataStuck(accelerometer, gyro, report.quaternion)) {
+                    if (this.isSensorDataStuck(accelerometer, gyro, report.quaternion, report.packetCounter)) {
                         try {
                             this.enableOrientationData();
                         } catch (everything) { } // In case HID device is disconnected
@@ -527,8 +528,8 @@ export namespace SteamController {
             }
         }
 
-        private isSensorDataStuck(accelerometer: Report['accelerometer'], gyro: Report['gyro'], quaternion: Report['quaternion']) {
-            return (
+        private isSensorDataStuck(accelerometer: Report['accelerometer'], gyro: Report['gyro'], quaternion: Report['quaternion'], packetCounter: number) {
+            const probablyStuck = (
                 (this.motionSensors.accelerometer &&
                     accelerometer.x === this.oldRawValues.accelerometer.x &&
                     accelerometer.y === this.oldRawValues.accelerometer.y &&
@@ -540,8 +541,20 @@ export namespace SteamController {
                 (this.motionSensors.quaternion &&
                     quaternion.x === this.report.quaternion.x &&
                     quaternion.y === this.report.quaternion.y &&
-                    quaternion.z === this.report.quaternion.z)
+                    quaternion.z === this.report.quaternion.z &&
+                    quaternion.w === this.report.quaternion.w)
             );
+
+            if (probablyStuck){
+                if (packetCounter - this.sensorCheck.packetCounter > 200){
+                    this.sensorCheck.packetCounter = packetCounter;
+                    return true;
+                }
+            }
+            else{
+                this.sensorCheck.packetCounter = packetCounter;
+            }
+            return false;
         }
 
         private positionToDS_Position(int16_value: number) {

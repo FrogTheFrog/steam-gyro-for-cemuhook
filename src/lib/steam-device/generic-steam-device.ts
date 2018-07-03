@@ -1,6 +1,7 @@
 import { Observable } from "rxjs";
 import { SteamDeviceState } from "../../models/enum/steam-device-state.enum";
 import { GenericSteamDeviceEvents } from "../../models/interface/generic-steam-device-events.interface";
+import { MotionData } from "../../models/interface/motion-data.interface";
 import { SteamDeviceReport } from "../../models/interface/steam-device-report.interface";
 import { GenericEvent } from "../../models/type/generic-event.type";
 
@@ -12,7 +13,8 @@ export default abstract class GenericSteamDevice {
     public abstract open(): this;
     public abstract close(): this;
     public abstract isOpen(): boolean;
-    public abstract getReport(previous: boolean): SteamDeviceReport;
+    public abstract get rawReport(): SteamDeviceReport | null;
+    public abstract get motionData(): MotionData | null;
 }
 
 export function emptySteamDeviceReport() {

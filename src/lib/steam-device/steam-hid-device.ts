@@ -6,7 +6,7 @@ import { SteamDeviceMinValues } from "../../models/const/steam-device.const";
 import { VendorId, WiredProductId, WirelessProductId } from "../../models/const/steam-hid-device.const";
 import { SteamDeviceState } from "../../models/enum/steam-device-state.enum";
 import { GenericSteamDeviceEvents } from "../../models/interface/generic-steam-device-events.interface";
-import { SteamDeviceReport } from "../../models/interface/steam-device-report.interface";
+import { MotionData } from "../../models/interface/motion-data.interface";
 import { SteamHidDeviceStaticEvents } from "../../models/interface/steam-hid-device-static-events.interface";
 import { GenericEvent } from "../../models/type/generic-event.type";
 import GenericSteamDevice, { emptySteamDeviceReport } from "./generic-steam-device";
@@ -185,22 +185,19 @@ export default class SteamHidDevice extends GenericSteamDevice {
         }
     }
 
-    private currentReport = emptySteamDeviceReport();
-    private previousReport = emptySteamDeviceReport();
+    private report = emptySteamDeviceReport();
+    private rawMotionData: MotionData = { accelerometer: { x: 0, y: 0, z: 0 }, gyro: { x: 0, y: 0, z: 0 } };
     private connectionTimestamp: number = 0;
     private lastValidSensorPacket: number = 0;
     private hidDevice: HID | null = null;
     private eventSubject = new Subject<GenericEvent<GenericSteamDeviceEvents>>();
 
-    constructor() {
-        super();
-        const mac = randomMac();
-        this.currentReport.macAddress = mac;
-        this.previousReport.macAddress = mac;
+    public get rawReport() {
+        return this.report;
     }
 
-    public getReport(previous: boolean = false) {
-        return previous ? this.previousReport : this.currentReport;
+    public get motionData() {
+        return this.report;
     }
 
     public open() {
@@ -215,7 +212,8 @@ export default class SteamHidDevice extends GenericSteamDevice {
                     this.hidDevice = new HID(devicePath);
                     this.hidDevice.on("data", (data: Buffer) => {
                         if (this.parseRawData(data)) {
-                            this.eventSubject.next({ event: "report", value: this.currentReport });
+                            this.eventSubject.next({ event: "report", value: this.report });
+                            this.eventSubject.next({ event: "motionData", value: this.motionData });
                         }
                     });
                     this.hidDevice.on("closed", () => this.close());
@@ -259,189 +257,187 @@ export default class SteamHidDevice extends GenericSteamDevice {
         return this.eventSubject.asObservable();
     }
 
-    private swapReport() {
-        const report = this.previousReport;
-        this.previousReport = this.currentReport;
-        this.currentReport = report;
-        return report;
-    }
-
     private parseRawData(data: Buffer) {
-        const time = microtime.now();
-        const report = this.swapReport();
-        let event: number;
-        let index = 0;
+        if (data.length === 64) { // Handle data received dongle
+            const time = microtime.now();
+            const report = this.report;
+            let event: number;
+            let index = 0;
 
-        index += 2; // skip reading id (or something else)
+            index += 2; // skip reading id (or something else)
 
-        event = data.readUInt16LE(index, true);
-        index += 2;
-
-        if (event === HidEvent.DataUpdate) {
-            let leftPadReading: boolean;
-            let preserveData: boolean;
-            let buttonData: number;
-
-            report.state = SteamDeviceState.Connected;
-            report.timestamp = time - this.connectionTimestamp;
-
-            report.packetCounter = data.readUInt32LE(index, true);
-            index += 4;
-
-            buttonData = data[index++];
-            report.button.RT = bool(buttonData & 0x01);
-            report.button.LT = bool(buttonData & 0x02);
-            report.button.RS = bool(buttonData & 0x04);
-            report.button.LS = bool(buttonData & 0x08);
-            report.button.Y = bool(buttonData & 0x10);
-            report.button.B = bool(buttonData & 0x20);
-            report.button.X = bool(buttonData & 0x40);
-            report.button.A = bool(buttonData & 0x80);
-
-            buttonData = data[index++];
-            report.button.dPad.UP = bool(buttonData & 0x01);
-            report.button.dPad.RIGHT = bool(buttonData & 0x02);
-            report.button.dPad.LEFT = bool(buttonData & 0x04);
-            report.button.dPad.DOWN = bool(buttonData & 0x08);
-            report.button.previous = bool(buttonData & 0x10);
-            report.button.steam = bool(buttonData & 0x20);
-            report.button.next = bool(buttonData & 0x40);
-            report.button.grip.LEFT = bool(buttonData & 0x80);
-
-            buttonData = data[index++];
-            preserveData = bool(buttonData & 0x80);
-            leftPadReading = bool(buttonData & 0x08);
-
-            report.button.grip.RIGHT = bool(buttonData & 0x01);
-            report.button.rightPad = bool(buttonData & 0x04);
-            report.button.stick = bool(buttonData & 0x40) || (preserveData ? report.button.stick : false);
-            report.touch.leftPad = leftPadReading || (preserveData ? report.touch.leftPad : false);
-            report.touch.rightPad = bool(buttonData & 0x10);
-
-            report.trigger.LEFT = data[index++];
-            report.trigger.RIGHT = data[index++];
-
-            index += 3; // padding?
-
-            if (leftPadReading) {
-                report.position.leftPad.x = data.readInt16LE(index, true);
-                index += 2;
-                report.position.leftPad.y = data.readInt16LE(index, true);
-
-                if (!preserveData) {
-                    report.position.stick.x = 0;
-                    report.position.stick.y = 0;
-                }
-            }
-            else {
-                report.position.stick.x = data.readInt16LE(index, true);
-                index += 2;
-                report.position.stick.y = data.readInt16LE(index, true);
-
-                if (!preserveData) {
-                    report.position.leftPad.x = 0;
-                    report.position.leftPad.y = 0;
-                }
-            }
+            event = data.readUInt16LE(index, true);
             index += 2;
 
-            report.position.rightPad.x = data.readInt16LE(index, true);
-            index += 2;
-            report.position.rightPad.y = data.readInt16LE(index, true);
-            index += 2;
+            if (event === HidEvent.DataUpdate) {
+                let leftPadReading: boolean;
+                let preserveData: boolean;
+                let buttonData: number;
 
-            index += 4; // padding?
-
-            report.accelerometer.x = data.readInt16LE(index, true) * SteamDeviceMinValues.accelerometer;
-            index += 2;
-            report.accelerometer.y = data.readInt16LE(index, true) * SteamDeviceMinValues.accelerometer;
-            index += 2;
-            report.accelerometer.z = data.readInt16LE(index, true) * SteamDeviceMinValues.accelerometer;
-            index += 2;
-
-            report.gyro.x = data.readInt16LE(index, true) * SteamDeviceMinValues.gyro;
-            index += 2;
-            report.gyro.y = data.readInt16LE(index, true) * SteamDeviceMinValues.gyro;
-            index += 2;
-            report.gyro.z = data.readInt16LE(index, true) * SteamDeviceMinValues.gyro;
-            index += 2;
-
-            report.quaternion.x = data.readInt16LE(index, true) * SteamDeviceMinValues.quaternion;
-            index += 2;
-            report.quaternion.y = data.readInt16LE(index, true) * SteamDeviceMinValues.quaternion;
-            index += 2;
-            report.quaternion.z = data.readInt16LE(index, true) * SteamDeviceMinValues.quaternion;
-            index += 2;
-            report.quaternion.w = data.readInt16LE(index, true) * SteamDeviceMinValues.quaternion;
-
-            if (this.isSensorDataStuck(this.previousReport, report)) {
-                this.enableSensors();
-            }
-        }
-        else if (event === HidEvent.ConnectionUpdate) {
-            const connection = data[index];
-            if (connection === 0x01) {
-                report.state = SteamDeviceState.Disconnected;
-                this.close();
-            }
-            else if (connection === 0x02) {
                 report.state = SteamDeviceState.Connected;
-            }
-            else if (connection === 0x03) {
-                report.state = SteamDeviceState.Pairing;
-            }
-        }
-        else if (event === HidEvent.BatteryUpdate) {
-            report.state = SteamDeviceState.Connected;
+                report.timestamp = time - this.connectionTimestamp;
 
-            index += 8;
-            report.battery = data.readInt16LE(index, true);
+                report.packetCounter = data.readUInt32LE(index, true);
+                index += 4;
+
+                buttonData = data[index++];
+                report.button.RT = bool(buttonData & 0x01);
+                report.button.LT = bool(buttonData & 0x02);
+                report.button.RS = bool(buttonData & 0x04);
+                report.button.LS = bool(buttonData & 0x08);
+                report.button.Y = bool(buttonData & 0x10);
+                report.button.B = bool(buttonData & 0x20);
+                report.button.X = bool(buttonData & 0x40);
+                report.button.A = bool(buttonData & 0x80);
+
+                buttonData = data[index++];
+                report.button.dPad.UP = bool(buttonData & 0x01);
+                report.button.dPad.RIGHT = bool(buttonData & 0x02);
+                report.button.dPad.LEFT = bool(buttonData & 0x04);
+                report.button.dPad.DOWN = bool(buttonData & 0x08);
+                report.button.previous = bool(buttonData & 0x10);
+                report.button.steam = bool(buttonData & 0x20);
+                report.button.next = bool(buttonData & 0x40);
+                report.button.grip.LEFT = bool(buttonData & 0x80);
+
+                buttonData = data[index++];
+                preserveData = bool(buttonData & 0x80);
+                leftPadReading = bool(buttonData & 0x08);
+
+                report.button.grip.RIGHT = bool(buttonData & 0x01);
+                report.button.rightPad = bool(buttonData & 0x04);
+                report.button.stick = bool(buttonData & 0x40) || (preserveData ? report.button.stick : false);
+                report.touch.leftPad = leftPadReading || (preserveData ? report.touch.leftPad : false);
+                report.touch.rightPad = bool(buttonData & 0x10);
+
+                report.trigger.LEFT = data[index++];
+                report.trigger.RIGHT = data[index++];
+
+                index += 3; // padding?
+
+                if (leftPadReading) {
+                    report.position.leftPad.x = data.readInt16LE(index, true);
+                    index += 2;
+                    report.position.leftPad.y = data.readInt16LE(index, true);
+
+                    if (!preserveData) {
+                        report.position.stick.x = 0;
+                        report.position.stick.y = 0;
+                    }
+                }
+                else {
+                    report.position.stick.x = data.readInt16LE(index, true);
+                    index += 2;
+                    report.position.stick.y = data.readInt16LE(index, true);
+
+                    if (!preserveData) {
+                        report.position.leftPad.x = 0;
+                        report.position.leftPad.y = 0;
+                    }
+                }
+                index += 2;
+
+                report.position.rightPad.x = data.readInt16LE(index, true);
+                index += 2;
+                report.position.rightPad.y = data.readInt16LE(index, true);
+                index += 2;
+
+                index += 4; // padding?
+
+                report.accelerometer.x = data.readInt16LE(index, true) * SteamDeviceMinValues.accelerometer;
+                index += 2;
+                report.accelerometer.y = data.readInt16LE(index, true) * SteamDeviceMinValues.accelerometer;
+                index += 2;
+                report.accelerometer.z = data.readInt16LE(index, true) * SteamDeviceMinValues.accelerometer;
+                index += 2;
+
+                report.gyro.x = data.readInt16LE(index, true) * SteamDeviceMinValues.gyro;
+                index += 2;
+                report.gyro.y = data.readInt16LE(index, true) * SteamDeviceMinValues.gyro;
+                index += 2;
+                report.gyro.z = data.readInt16LE(index, true) * SteamDeviceMinValues.gyro;
+                index += 2;
+
+                report.quaternion.x = data.readInt16LE(index, true) * SteamDeviceMinValues.quaternion;
+                index += 2;
+                report.quaternion.y = data.readInt16LE(index, true) * SteamDeviceMinValues.quaternion;
+                index += 2;
+                report.quaternion.z = data.readInt16LE(index, true) * SteamDeviceMinValues.quaternion;
+                index += 2;
+                report.quaternion.w = data.readInt16LE(index, true) * SteamDeviceMinValues.quaternion;
+
+                if (this.isSensorDataStuck(this.rawMotionData, report, report.packetCounter)) {
+                    this.enableSensors();
+                }
+
+                this.rawMotionData.accelerometer = report.accelerometer;
+                this.rawMotionData.gyro = report.gyro;
+            }
+            else if (event === HidEvent.ConnectionUpdate) {
+                const connection = data[index];
+                if (connection === 0x01) {
+                    report.state = SteamDeviceState.Disconnected;
+                    this.close();
+                }
+                else if (connection === 0x02) {
+                    report.state = SteamDeviceState.Connected;
+                }
+                else if (connection === 0x03) {
+                    report.state = SteamDeviceState.Pairing;
+                }
+            }
+            else if (event === HidEvent.BatteryUpdate) {
+                report.state = SteamDeviceState.Connected;
+
+                index += 8;
+                report.battery = data.readInt16LE(index, true);
+            }
+            else { // unknown event
+                return false;
+            }
+            return true;
         }
-        else { // unknown event
-            this.swapReport();
+        else { // Handle event based data
             return false;
         }
-        return true;
     }
 
-    private isSensorDataStuck(previousReport: SteamDeviceReport, currentReport: SteamDeviceReport) {
+    private isSensorDataStuck(previousData: MotionData, currentData: MotionData, packetCounter: number) {
         const probablyStuck = (
             (
-                previousReport.accelerometer.x === currentReport.accelerometer.x &&
-                previousReport.accelerometer.y === currentReport.accelerometer.y &&
-                previousReport.accelerometer.z === currentReport.accelerometer.z
+                previousData.accelerometer.x === currentData.accelerometer.x &&
+                previousData.accelerometer.y === currentData.accelerometer.y &&
+                previousData.accelerometer.z === currentData.accelerometer.z
             ) || (
-                previousReport.gyro.x === currentReport.gyro.x &&
-                previousReport.gyro.y === currentReport.gyro.y &&
-                previousReport.gyro.z === currentReport.gyro.z
-            ) || (
-                previousReport.quaternion.x === currentReport.quaternion.x &&
-                previousReport.quaternion.y === currentReport.quaternion.y &&
-                previousReport.quaternion.z === currentReport.quaternion.z &&
-                previousReport.quaternion.w === currentReport.quaternion.w
+                previousData.gyro.x === currentData.gyro.x &&
+                previousData.gyro.y === currentData.gyro.y &&
+                previousData.gyro.z === currentData.gyro.z
             )
         );
 
         if (probablyStuck) {
-            if (currentReport.packetCounter - this.lastValidSensorPacket > 200) {
-                this.lastValidSensorPacket = currentReport.packetCounter;
+            if (packetCounter - this.lastValidSensorPacket > 200) {
+                this.lastValidSensorPacket = packetCounter;
                 return true;
             }
         }
         else {
-            this.lastValidSensorPacket = currentReport.packetCounter;
+            this.lastValidSensorPacket = packetCounter;
         }
         return false;
     }
 
     private enableSensors() {
         if (this.isOpen()) {
-            const gyro = 0x10;
-            const accelerometer = 0x08;
-            const quaternion = 0x04;
-            const featureArray = new SteamHidDeviceFeatureArray();
-            featureArray.setUint16(0x30, gyro | accelerometer | quaternion);
-            this.hidDevice!.sendFeatureReport(featureArray.array);
+            try {
+                const gyro = 0x10;
+                const accelerometer = 0x08;
+                const quaternion = 0x04;
+                const featureArray = new SteamHidDeviceFeatureArray();
+                featureArray.setUint16(0x30, gyro | accelerometer | quaternion);
+                this.hidDevice!.sendFeatureReport(featureArray.array);
+                // tslint:disable-next-line:no-empty
+            } catch (everything) { }
         }
     }
 }

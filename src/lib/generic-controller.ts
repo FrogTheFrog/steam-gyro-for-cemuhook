@@ -23,6 +23,7 @@ export default class GenericController extends DualshockGenericController {
         this.steamDevice.events.subscribe((data) => {
             switch (data.event) {
                 case "report":
+                    this.eventSubject.next(data);
                     this.eventSubject.next({
                         event: "dualshockData",
                         value: {
@@ -30,21 +31,23 @@ export default class GenericController extends DualshockGenericController {
                             report: this.reportToDualshockReport(data.value),
                         },
                     });
-                    this.eventSubject.next({
-                        event: "report",
-                        value: data.value,
-                    });
-                    break;
-                case "error":
-                    this.eventSubject.next(data);
                     break;
                 default:
+                    this.eventSubject.next(data);
                     break;
             }
         });
     }
 
-    get events() {
+    public get rawReport() {
+        return this.steamDevice.isOpen() ? this.steamDevice.rawReport : null;
+    }
+
+    public get motionData() {
+        return this.steamDevice.isOpen() ? this.steamDevice.motionData : null;
+    }
+
+    public get events() {
         return this.eventSubject.asObservable();
     }
 
@@ -73,11 +76,11 @@ export default class GenericController extends DualshockGenericController {
     }
 
     public getDualShockMeta() {
-        return this.isOpen() ? this.reportToDualshockMeta(this.steamDevice.getReport()!) : null;
+        return this.isOpen() ? this.reportToDualshockMeta(this.steamDevice.rawReport!) : null;
     }
 
     public getDualShockReport() {
-        return this.isOpen() ? this.reportToDualshockReport(this.steamDevice.getReport()!) : null;
+        return this.isOpen() ? this.reportToDualshockReport(this.steamDevice.rawReport!) : null;
     }
 
     private toDualshockPosition(int16Value: number) {

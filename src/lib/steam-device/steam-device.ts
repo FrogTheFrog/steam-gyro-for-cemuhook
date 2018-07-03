@@ -1,5 +1,5 @@
 import { Subject, Subscription } from "rxjs";
-import { SteamDeviceEvents } from "../../models/interface/steam-device-events.interface";
+import { GenericSteamDeviceEvents } from "../../models/interface/generic-steam-device-events.interface";
 import { GenericEvent } from "../../models/type/generic-event.type";
 import GenericSteamDevice from "./generic-steam-device";
 import SteamHidDevice from "./steam-hid-device";
@@ -10,15 +10,19 @@ export default class SteamDevice {
     private device: GenericSteamDevice | null = null;
     private deviceEvents = new Subscription();
     private watcherEvents = new Subscription();
-    private eventSubject = new Subject<GenericEvent<SteamDeviceEvents>>();
+    private eventSubject = new Subject<GenericEvent<GenericSteamDeviceEvents>>();
     private watcher = { timer: null as (NodeJS.Timer | null), isWatching: false };
 
     get events() {
         return this.eventSubject.asObservable();
     }
 
-    public getReport(previous: boolean = false) {
-        return this.device != null ? this.device.getReport(previous) : null;
+    public get rawReport() {
+        return this.device != null ? this.device.rawReport : null;
+    }
+
+    public get motionData() {
+        return this.device != null ? this.device.motionData : null;
     }
 
     public open() {
@@ -40,11 +44,8 @@ export default class SteamDevice {
                     case "close":
                         this.close();
                         break;
-                    case "report":
-                    case "error":
-                        this.eventSubject.next(data);
-                        break;
                     default:
+                        this.eventSubject.next(data);
                         break;
                 }
             });

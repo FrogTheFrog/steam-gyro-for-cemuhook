@@ -1,14 +1,16 @@
 {
     "compilerOptions": {
-        "target": "es2016",
-        "moduleResolution": "node",
+        "target": "es2017",
         "sourceMap": true,
-        "emitDecoratorMetadata": true,
+        "strict": true,
+        "moduleResolution": "node",
         "experimentalDecorators": true,
-        "removeComments": false,
-        "noImplicitAny": true,
-        "suppressImplicitAnyIndexErrors": true
+        "emitDecoratorMetadata": true,
+        "skipLibCheck": true
     },
+    "files": [
+        "./src/backend/main.ts"
+    ],
     "exclude": [
         "node_modules"
     ]

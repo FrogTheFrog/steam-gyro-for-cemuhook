@@ -1,169 +1,171 @@
-import { TypedEventEmitter } from "./typed-event-emitter";
-import * as _ from "lodash";
+import { cloneDeep } from "lodash";
 import * as microtime from "microtime";
+import { FilterDataType } from "../models/interface/filter-data-type.interface";
+import { FilterData } from "../models/interface/filter-data.interface";
+import { FilterType } from "../models/interface/filter-type.interface";
+import { GenericFilterFunction } from "../models/type/generic-filter-function.type";
 
-export namespace Filter {
-    export interface Type extends FilterData {
-        type: FilterType
+export class Filter {
+    public static get availableFilters() {
+        return ["None", "Hysteresis", "Low-pass"] as Array<FilterType["type"]>;
     }
 
-    export type FilterType = 'None' | 'Hysteresis' | 'Low-pass';
+    private dataFields: Array<keyof FilterDataType> = ["x", "y", "z"];
+    private input: FilterDataType | null = null;
+    private output: FilterDataType | null = null;
+    private filters: Array<{ fn: GenericFilterFunction } & FilterType> = [];
 
-    export interface FilterData {
-        filterAllAtOnce: boolean,
-        deviation: {
-            min: number,
-            max: number,
-            useProvidedData: boolean
-        },
-        coefficients: number[]
+    public setInputObject(input: FilterDataType) {
+        this.input = input;
+        return this;
     }
 
-    export interface DataType {
-        x: number,
-        y: number,
-        z: number
+    public setOutputObject(output: FilterDataType) {
+        this.output = output;
+        return this;
     }
 
-    export interface Events {
-        values: { type: Type['type'], index: number, data: DataType };
-    }
-
-    type filterFn = (field: string, deviationModulus: number, time: number, deviationData: { input: DataType, output: DataType }) => void;
-
-    export function getAvailableFilters() {
-        return <FilterType[]>['None', 'Hysteresis', 'Low-pass'];
-    }
-
-    export class Manager extends TypedEventEmitter<Events> {
-        private dataFields = ['x', 'y', 'z'];
-        private input: DataType = undefined;
-        private output: DataType = undefined;
-        private filters: ({ fn: filterFn } & Type)[] = [];
-
-        setInputObject(input: DataType) {
-            this.input = input;
-            return this;
-        }
-
-        setOutputObject(output: DataType) {
-            this.output = output;
-            return this;
-        }
-
-        addFilter(data: Type | Type[]) {
-            if (data instanceof Array) {
-                for (let i = 0; i < data.length; i++)
-                    this.filters.push(this.generateFilter(this.filters.length, data[i]));
+    public addFilter(data: FilterType | FilterType[]) {
+        if (data instanceof Array) {
+            for (const item of data) {
+                this.filters.push(this.generateFilter(this.filters.length, item));
             }
-            else
-                this.filters.push(this.generateFilter(this.filters.length, data));
-
-            return this;
+        }
+        else {
+            this.filters.push(this.generateFilter(this.filters.length, data));
         }
 
-        editFilterType(index: number, type: FilterType) {
-            this.filters[index].fn = this.generateFilterFn(index, type);
-            return this;
+        return this;
+    }
+
+    public editFilterType(index: number, type: FilterType["type"]) {
+        this.filters[index].fn = this.generateFilterFn(index, type);
+        return this;
+    }
+
+    public editFilterData(index: number, data: FilterData) {
+        Object.assign(this.filters[index], data);
+        return this;
+    }
+
+    public removeFilter(index?: number) {
+        if (index !== undefined) {
+            this.filters.splice(index, 1);
+        }
+        else {
+            this.filters = [];
         }
 
-        editFilterData(index: number, data: FilterData) {
-            Object.assign(this.filters[index], data);
-            return this;
+        return this;
+    }
+
+    public filter(filterTime?: number, deviationData?: { input: FilterDataType, output: FilterDataType }) {
+        // const emitValues: boolean = false;
+        const deviations: number[] = new Array(this.dataFields.length);
+        const mustBeFiltered: boolean[] = new Array(this.dataFields.length);
+        const input = this.input;
+        const output = this.output;
+        let atLeastOneMustBeFiltered: boolean = false;
+
+        if (input === null || output === null){
+            throw new Error("filter output and/or input is not set");
         }
 
-        removeFilter(index?: number) {
-            if (index === undefined)
-                this.filters.splice(index, 1);
-            else
-                this.filters = [];
-
-            return this;
+        if (filterTime === undefined) {
+            filterTime = microtime.now();
         }
 
-        filter(filterTime?: number, deviationData?: { input: DataType, output: DataType }) {
-            let emitValues: boolean = false;
-            let atLeastOneMustBeFiltered: boolean = false;
-            let deviations: number[] = new Array(this.dataFields.length);
-            let mustBeFiltered: boolean[] = new Array(this.dataFields.length);
+        if (deviationData !== undefined) {
+            deviationData = cloneDeep(deviationData);
+        }
 
-            if (filterTime === undefined)
-                filterTime = microtime.now();
+        for (const filter of this.filters) {
+            atLeastOneMustBeFiltered = false;
 
-            if (deviationData !== undefined)
-                deviationData = _.cloneDeep(deviationData);
-
-            for (let i = 0; i < this.filters.length; i++) {
-                atLeastOneMustBeFiltered = false;
-
-                for (let j = 0; j < this.dataFields.length; j++) {
-                    if (this.filters[i].deviation.useProvidedData && deviationData !== undefined)
-                        deviations[j] = Math.abs(deviationData.input[this.dataFields[j]] - deviationData.output[this.dataFields[j]]);
-                    else
-                        deviations[j] = Math.abs(this.input[this.dataFields[j]] - this.output[this.dataFields[j]]);
-
-                    mustBeFiltered[j] = this.filters[i].deviation.min <= deviations[j] && deviations[j] <= this.filters[i].deviation.max;
-                    if (mustBeFiltered[j])
-                        atLeastOneMustBeFiltered = true;
+            for (let j = 0; j < this.dataFields.length; j++) {
+                if (filter.deviation.useProvidedData && deviationData !== undefined) {
+                    deviations[j] = Math.abs(
+                        deviationData.input[this.dataFields[j]] - deviationData.output[this.dataFields[j]],
+                    );
+                }
+                else {
+                    deviations[j] = Math.abs(
+                        input[this.dataFields[j]] - output[this.dataFields[j]],
+                    );
                 }
 
-                if (atLeastOneMustBeFiltered) {
-                    if (this.filters[i].filterAllAtOnce) {
-                        for (let j = 0; j < this.dataFields.length; j++)
-                            this.filters[i].fn(this.dataFields[j], deviations[j], filterTime, deviationData);
-                    }
-                    else {
-                        for (let j = 0; j < this.dataFields.length; j++) {
-                            if (mustBeFiltered[j])
-                                this.filters[i].fn(this.dataFields[j], deviations[j], filterTime, deviationData);
-                            else
-                                this.output[this.dataFields[j]] = this.input[this.dataFields[j]];
-                        }
+                mustBeFiltered[j] = filter.deviation.min <= deviations[j] && deviations[j] <= filter.deviation.max;
+                if (mustBeFiltered[j]) {
+                    atLeastOneMustBeFiltered = true;
+                }
+            }
+
+            if (atLeastOneMustBeFiltered) {
+                if (filter.filterAllAtOnce) {
+                    for (let j = 0; j < this.dataFields.length; j++) {
+                        filter.fn(this.dataFields[j], deviations[j], filterTime, deviationData);
                     }
                 }
                 else {
-                    for (let j = 0; j < this.dataFields.length; j++)
-                        this.output[this.dataFields[j]] = this.input[this.dataFields[j]];
-                }
-
-                if (emitValues) {
-
-                }
-            }
-
-            return this;
-        }
-
-        private generateFilterFn(index: number, type: FilterType) {
-            switch (type) {
-                case 'Low-pass':
-                    return (field: string, deviationModulus: number, time: number, deviationData: { input: DataType, output: DataType }) => {
-                        this.output[field] = this.output[field] + this.filters[index].coefficients[0] * (this.input[field] - this.output[field]);
-                    };
-                case 'Hysteresis': {
-                    let self = this;
-                    return function (field: string, deviationModulus: number, time: number, deviationData: { input: DataType, output: DataType }) {
-                        if (this.oldTime === undefined) {
-                            if (deviationModulus > self.filters[index].coefficients[0])
-                                this.oldTime = time;
+                    for (let j = 0; j < this.dataFields.length; j++) {
+                        if (mustBeFiltered[j]) {
+                            filter.fn(this.dataFields[j], deviations[j], filterTime, deviationData);
                         }
                         else {
-                            if (time - this.oldTime < self.filters[index].coefficients[1])
-                                self.output[field] = self.input[field];
-                            else
-                                this.oldTime = undefined;
+                            output[this.dataFields[j]] = input[this.dataFields[j]];
                         }
-                    };
+                    }
                 }
-                case 'None':
-                    return (field: string, deviationModulus: number, time: number, deviationData: { input: DataType, output: DataType }) => { this.output[field] = this.input[field] };
-                default:
-                    throw new Error('Invalid filter type');
             }
+            else {
+                for (const field of this.dataFields) {
+                    output[field] = input[field];
+                }
+            }
+
+            /* if (emitValues) {
+
+            } */
         }
 
-        private generateFilter(index: number, data: Type) {
-            return Object.assign({ fn: this.generateFilterFn(index, data.type) }, data);
+        return this;
+    }
+
+    private generateFilterFn(index: number, type: FilterType["type"]) {
+        const filter = this.filters[index];
+        const input = this.input as FilterDataType;
+        const output = this.output as FilterDataType;
+
+        switch (type) {
+            case "Low-pass":
+                return (field: keyof FilterDataType, deviationModulus: number, time: number) => {
+                    output[field] = output[field] + filter.coefficients[0] * (input[field] - output[field]);
+                };
+            case "Hysteresis": {
+                let oldTime: number | null = null;
+                return (field: keyof FilterDataType, deviationModulus: number, time: number) => {
+                    if (oldTime === null && deviationModulus > filter.coefficients[0]) {
+                        oldTime = time;
+                    }
+
+                    if (oldTime !== null) {
+                        if (time - oldTime < filter.coefficients[1]) {
+                            output[field] = input[field];
+                        }
+                        else {
+                            oldTime = null;
+                        }
+                    }
+                };
+            }
+            case "None":
+                return (field: keyof FilterDataType) => { output[field] = input[field]; };
+            default:
+                throw new Error("Invalid filter type");
         }
+    }
+
+    private generateFilter(index: number, data: FilterType) {
+        return Object.assign({ fn: this.generateFilterFn(index, data.type) }, data);
     }
 }

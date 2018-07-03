@@ -1,106 +1,109 @@
 {
-  "name": "steam-gyro-for-cemuhook",
-  "description": "App to add Steam Controller's motion support to Cemuhook",
-  "authors": "FrogTheFrog",
-  "version": "1.3.0",
-  "main": "./dist/main.bundle.js",
-  "author": {
-    "name": "FrogTheFrog",
-    "url": "https://github.com/FrogTheFrog",
-    "email": "warliukz@gmail.com"
-  },
-  "repository": {
-    "url": "https://github.com/FrogTheFrog/steam-gyro-for-cemuhook"
-  },
-  "build": {
-    "appId": "FrogTheFrog.SteamGyroForCemuhook",
-    "productName": "Steam Gyro For Cemuhook",
-    "compression": "normal",
-    "directories": {
-      "output": "release"
-    },
-    "win": {
-      "target": [
-        "portable"
-      ],
-      "icon": "./assets/icon.ico"
-    },
-    "portable": {
-      "artifactName": "${productName}.${ext}"
-    },
-    "files": [
-      "dist/**/*",
-      "package.json"
-    ]
-  },
-  "scripts": {
-    "postinstall": "./node_modules/.bin/electron-rebuild",
-    "start": "./node_modules/.bin/electron ./dist/main.bundle.js",
-    "watch:main": "webpack --watch --config ./webpack/main.js",
-    "watch:renderer": "webpack --watch --config ./webpack/renderer.js",
-    "build:main": "cross-env NODE_ENV=production webpack --config ./webpack/main.js",
-    "build:renderer": "cross-env NODE_ENV=production webpack --config ./webpack/renderer.js",
-    "build:dist": "rimraf dist && npm run build:main && npm run build:renderer",
-    "build:win": "build --win --x64"
-  },
-  "dependencies": {
-    "@angular/animations": "^5.2.4",
-    "@angular/cdk": "^5.2.0",
-    "@angular/common": "^5.2.4",
-    "@angular/compiler": "^5.2.4",
-    "@angular/core": "^5.2.4",
-    "@angular/forms": "^5.2.4",
-    "@angular/http": "^5.2.4",
-    "@angular/material": "^5.2.0",
-    "@angular/platform-browser": "^5.2.4",
-    "@angular/platform-browser-dynamic": "^5.2.4",
-    "@angular/router": "^5.2.4",
-    "ajv": "^6.1.1",
-    "ajv-keywords": "^3.1.0",
-    "core-js": "^2.5.3",
-    "crc": "^3.5.0",
-    "fs-extra": "^5.0.0",
-    "hammerjs": "^2.0.8",
-    "lodash": "^4.17.5",
-    "long": "^4.0.0",
-    "microtime": "^2.1.7",
-    "node-hid": "^0.7.2",
-    "random-js": "^1.0.8",
-    "random-mac": "0.0.4",
-    "strip-bom": "^3.0.0",
-    "usb-detection": "^2.1.0",
-    "web-animations-js": "^2.3.1",
-    "winston": "^2.4.0",
-    "zone.js": "^0.8.20"
-  },
-  "devDependencies": {
-    "@types/crc": "^3.4.0",
-    "@types/fs-extra": "^5.0.0",
-    "@types/lodash": "^4.14.102",
-    "@types/long": "^3.0.32",
-    "@types/microtime": "^2.1.0",
-    "@types/node": "^9.4.5",
-    "@types/node-hid": "^0.5.2",
-    "@types/random-js": "^1.0.30",
-    "@types/winston": "^2.3.8",
-    "angular2-template-loader": "^0.6.2",
-    "awesome-typescript-loader": "^3.4.1",
-    "cross-env": "^5.1.3",
-    "css-loader": "^0.28.9",
-    "electron": "^1.8.2",
-    "electron-builder": "^19.56.0",
-    "electron-rebuild": "^1.7.3",
-    "extract-text-webpack-plugin": "^3.0.2",
-    "file-loader": "^1.1.6",
-    "html-webpack-plugin": "^2.30.1",
-    "node-sass": "^4.7.2",
-    "postcss-loader": "^2.1.0",
-    "rimraf": "^2.6.2",
-    "sass-loader": "^6.0.6",
-    "to-string-loader": "^1.1.5",
-    "typescript": "^2.7.1",
-    "webpack": "^3.11.0",
-    "webpack-merge": "^4.1.1",
-    "webpack-node-externals": "^1.6.0"
-  }
+	"name": "steam-gyro-for-cemuhook",
+	"description": "App to add Steam Controller's motion support to Cemuhook",
+	"authors": "FrogTheFrog",
+	"version": "1.2.0",
+	"main": "./dist/main.bundle.js",
+	"author": {
+		"name": "FrogTheFrog",
+		"url": "https://github.com/FrogTheFrog",
+		"email": "warliukz@gmail.com"
+	},
+	"repository": {
+		"url": "https://github.com/FrogTheFrog/steam-gyro-for-cemuhook"
+	},
+	"build": {
+		"appId": "FrogTheFrog.SteamGyroForCemuhook",
+		"productName": "Steam Gyro For Cemuhook",
+		"compression": "normal",
+		"directories": {
+			"output": "release"
+		},
+		"win": {
+			"target": [
+				"portable"
+			],
+			"icon": "./assets/icon.ico"
+		},
+		"portable": {
+			"artifactName": "${productName}.${ext}"
+		},
+		"files": [
+			"dist/**/*",
+			"package.json"
+		]
+	},
+	"scripts": {
+		"postinstall": "./node_modules/.bin/electron-rebuild",
+		"start": "./node_modules/.bin/electron ./dist/main.bundle.js",
+		"watch:backend": "webpack --watch --config ./webpack/backend.js",
+		"watch:frontend": "webpack --watch --config ./webpack/frontend.js",
+		"build:backend": "cross-env NODE_ENV=production webpack --config ./webpack/backend.js",
+		"build:frontend": "cross-env NODE_ENV=production webpack --config ./webpack/frontend.js",
+		"build:dist": "rimraf dist && npm run build:backend && npm run build:frontend",
+		"build:win": "build --win --x64"
+	},
+	"dependencies": {
+		"@angular/animations": "^6.0.7",
+		"@angular/cdk": "^6.3.2",
+		"@angular/common": "^6.0.7",
+		"@angular/compiler": "^6.0.7",
+		"@angular/core": "^6.0.7",
+		"@angular/forms": "^6.0.7",
+		"@angular/http": "^6.0.7",
+		"@angular/material": "^6.3.2",
+		"@angular/platform-browser": "^6.0.7",
+		"@angular/platform-browser-dynamic": "^6.0.7",
+		"@angular/router": "^6.0.7",
+		"ajv": "^6.5.2",
+		"core-js": "^2.5.7",
+		"crc": "^3.5.0",
+		"fs-extra": "^6.0.1",
+		"lodash": "^4.17.10",
+		"long": "^4.0.0",
+		"microtime": "^2.1.8",
+		"ngx-auto-unsubscribe": "^2.4.1",
+		"node-hid": "^0.7.3",
+		"random-js": "^1.0.8",
+		"random-mac": "0.0.4",
+		"rxjs": "^6.2.1",
+		"usb-detection": "^3.1.0",
+		"winston": "^3.0.0",
+		"zone.js": "^0.8.26"
+	},
+	"devDependencies": {
+		"@angular/cli": "^6.0.8",
+		"@ngtools/webpack": "^6.0.8",
+		"@types/crc": "^3.4.0",
+		"@types/fs-extra": "^5.0.3",
+		"@types/lodash": "^4.14.110",
+		"@types/long": "^4.0.0",
+		"@types/microtime": "^2.1.0",
+		"@types/node": "^10.5.1",
+		"@types/node-hid": "^0.7.0",
+		"@types/random-js": "^1.0.30",
+		"@types/winston": "^2.3.9",
+		"cross-env": "^5.2.0",
+		"css-loader": "^0.28.11",
+		"electron": "^2.0.4",
+		"electron-builder": "^20.19.1",
+		"electron-rebuild": "^1.7.3",
+		"file-loader": "^1.1.11",
+		"html-webpack-plugin": "^3.2.0",
+		"node-sass": "^4.9.0",
+		"postcss-loader": "^2.1.5",
+		"raw-loader": "^0.5.1",
+		"rimraf": "^2.6.2",
+		"sass-loader": "^7.0.3",
+		"style-loader": "^0.21.0",
+		"to-string-loader": "^1.1.5",
+		"ts-loader": "^4.4.2",
+		"ts-node": "^7.0.0",
+		"tslint": "^5.10.0",
+		"typescript": "^2.9.2",
+		"webpack": "^4.14.0",
+		"webpack-cli": "^3.0.8",
+		"webpack-merge": "^4.1.3",
+		"webpack-node-externals": "^1.7.2"
+	}
 }

@@ -6,3 +6,6 @@ npm-debug.log*
 .debug/
 steam-gyro.json
 steam-gyro-errors.log
+Rubbish/
+desktop.ini
+steam-gyro.json

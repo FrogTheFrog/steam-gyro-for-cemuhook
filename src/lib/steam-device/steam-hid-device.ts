@@ -3,7 +3,10 @@ import * as microtime from "microtime";
 import { Device as HidDevice, devices as hidDevices, HID } from "node-hid";
 import { Subject } from "rxjs";
 import { SteamDeviceMinValues } from "../../models/const/steam-device.const";
-import { VendorId, WiredProductId, WirelessProductId } from "../../models/const/steam-hid-device.const";
+import {
+    BluetoothProductId, VendorId,
+    WiredProductId, WirelessProductId,
+} from "../../models/const/steam-hid-device.const";
 import { SteamDeviceState } from "../../models/enum/steam-device-state.enum";
 import { GenericSteamDeviceEvents } from "../../models/interface/generic-steam-device-events.interface";
 import { MotionData } from "../../models/interface/motion-data.interface";
@@ -28,9 +31,12 @@ enum HidEvent {
     BatteryUpdate = 0x0b04,
 }
 
+type DeviceType = "wireless" | "wired" | "bluetooth";
+
 interface Item {
     info: HidDevice;
-    type: "wirelessConnected" | "wirelessDisconnected" | "wired";
+    type: DeviceType;
+    active: boolean;
     device: SteamHidDevice | null;
 }
 
@@ -41,15 +47,37 @@ export default class SteamHidDevice extends GenericSteamDevice {
 
     public static startMonitoring() {
         if (this.motoringCallCount++ === 0) {
-            this.updateDeviceList(false);
-            usbDetect.on(`change:${VendorId}:${WirelessProductId}`, () => this.updateDeviceList(true));
-            usbDetect.on(`change:${VendorId}:${WiredProductId}`, () => this.updateDeviceList(true));
+            this.updateDeviceList(0, "wired", "wireless");
+
+            // Dongle devices can be connected using usb events
+            usbDetect.on(
+                `change:${VendorId}:${WirelessProductId}`,
+                () => this.updateDeviceList(1000, "wireless"),
+            );
+            usbDetect.on(
+                `change:${VendorId}:${WiredProductId}`,
+                () => this.updateDeviceList(1000, "wired"),
+            );
+
+            // Bluetooth devices do not emit usb event and instead
+            // of introducing an OS limited BLE dependency, we are
+            // pooling for bluetooth devices only
+            
+            const watchBluetooth = () => {
+                this.updateDeviceList(0, "bluetooth");
+                SteamHidDevice.timer = global.setTimeout(watchBluetooth, 5000);
+            };
+            watchBluetooth();
         }
     }
 
     public static stopMonitoring() {
         if (--this.motoringCallCount === 0) {
             usbDetect.stopMonitoring();
+            if (SteamHidDevice.timer !== null){
+                clearTimeout(SteamHidDevice.timer);
+                SteamHidDevice.timer = null;
+            }
         }
     }
 
@@ -62,7 +90,7 @@ export default class SteamHidDevice extends GenericSteamDevice {
 
         for (const [path, item] of this.itemList) {
             if (item.device === null) {
-                if ((activeOnly && item.type !== "wirelessDisconnected") || !activeOnly) {
+                if ((activeOnly && item.active) || !activeOnly) {
                     devices.push(path);
                 }
             }
@@ -71,16 +99,24 @@ export default class SteamHidDevice extends GenericSteamDevice {
         return devices;
     }
 
+    private static timer: NodeJS.Timer | null = null;
     private static itemList = new Map<string, Item>();
     private static deviceList: HidDevice[] | null = null;
     private static motoringCallCount: number = 0;
     private static staticEventSubject = new Subject<GenericEvent<SteamHidDeviceStaticEvents>>();
 
-    private static updateDeviceList(usbDetection: boolean = false) {
-        setTimeout(() => {
+    private static updateDeviceList(delay: number, ...types: DeviceType[]) {
+        const refresh = () => {
             this.deviceList = hidDevices();
-            this.refreshItemList();
-        }, usbDetection ? 1000 : 0);
+            this.refreshItemList(...types);
+        };
+
+        if (delay > 0){
+            setTimeout(refresh, delay);
+        }
+        else {
+            refresh();
+        }
     }
 
     private static getDevices(settings?: {
@@ -88,7 +124,7 @@ export default class SteamHidDevice extends GenericSteamDevice {
         filter?: (device: HidDevice) => boolean,
         sort?: (a: HidDevice, b: HidDevice) => number,
     }) {
-        let devices = get(settings, "settings.devices", this.deviceList || []);
+        let devices = get(settings, "settings.devices", this.deviceList || []) as HidDevice[];
 
         if (settings) {
             if (settings.filter) {
@@ -103,64 +139,91 @@ export default class SteamHidDevice extends GenericSteamDevice {
         return devices;
     }
 
-    private static refreshItemList() {
+    private static refreshItemList(...types: DeviceType[]) {
         const allDevices = this.getDevices();
-        const wirelessDevices = this.getDevices({
-            devices: allDevices,
-            filter: (device) => {
-                return device.productId === WirelessProductId && device.vendorId === VendorId &&
-                    device.interface > 0 && device.interface < 5 &&
-                    device.usagePage === 0xFF00;
-            },
-            sort: (a, b) => {
-                return a.interface > b.interface ? 1 : 0;
-            },
-        });
-        const wiredDevices = this.getDevices({
-            devices: allDevices,
-            filter: (device) => {
-                return device.productId === WiredProductId && device.vendorId === VendorId &&
-                    device.interface > 0 && device.interface < 5 &&
-                    device.usagePage === 0xFF00;
-            },
-            sort: (a, b) => {
-                return a.interface > b.interface ? 1 : 0;
-            },
-        });
-        const newItems = new Map<string, Item>();
-        const itemsToRemove = new Map<string, Item>(this.itemList);
-        const filterDevices = (devices: HidDevice[], type: "wirelessDisconnected" | "wired") => {
+        let listChanged = false;
+
+        const filterDevices = (devices: HidDevice[], type: DeviceType) => {
             for (const device of devices) {
-                let remnantDevice: Item | null = null;
-
-                if (device.path && itemsToRemove.has(device.path)) {
-                    remnantDevice = itemsToRemove.get(device.path) || null;
-                    itemsToRemove.delete(device.path);
-                }
-                else {
-                    remnantDevice = { device: null, info: device, type };
-                }
-
-                if (device.path && remnantDevice !== null) {
-                    newItems.set(device.path, remnantDevice);
+                if (device.path) {
+                    if (!this.itemList.has(device.path)) {
+                        this.itemList.set(device.path, {
+                            active: type !== "wireless",
+                            device: null,
+                            info: device,
+                            type,
+                        });
+                        listChanged = true;
+                    }
                 }
             }
+
+            for (const [path, item] of this.itemList) {
+                if (item.type === type) {
+                    const hasDevice = devices.findIndex((device) => device.path === path) !== -1;
+                    if (!hasDevice) {
+                        if (item.device) {
+                            item.device.close();
+                        }
+                        this.itemList.delete(path);
+                        listChanged = true;
+                    }
+                }
+            }
+
+            return listChanged;
         };
 
-        filterDevices(wirelessDevices, "wirelessDisconnected");
-        filterDevices(wiredDevices, "wired");
-
-        for (const [path, item] of itemsToRemove) {
-            const device = item.device;
-            if (device) {
-                device.close();
+        for (const type of types) {
+            let devices: HidDevice[] | null = null;
+            switch (type) {
+                case "wireless":
+                    devices = this.getDevices({
+                        devices: allDevices,
+                        filter: (device) => {
+                            return device.productId === WirelessProductId && device.vendorId === VendorId &&
+                                device.interface > 0 && device.interface < 5 &&
+                                device.usagePage === 0xFF00;
+                        },
+                        sort: (a, b) => {
+                            return a.interface > b.interface ? 1 : 0;
+                        },
+                    });
+                    break;
+                case "wired":
+                    devices = this.getDevices({
+                        devices: allDevices,
+                        filter: (device) => {
+                            return device.productId === WiredProductId && device.vendorId === VendorId &&
+                                device.interface > 0 && device.interface < 5 &&
+                                device.usagePage === 0xFF00;
+                        },
+                        sort: (a, b) => {
+                            return a.interface > b.interface ? 1 : 0;
+                        },
+                    });
+                case "bluetooth":
+                    devices = this.getDevices({
+                        devices: allDevices,
+                        filter: (device) => {
+                            return device.productId === BluetoothProductId && device.vendorId === VendorId &&
+                                device.interface === -1 && device.usagePage === 0xFF00;
+                        },
+                    });
+                default:
+                    break;
+            }
+            if (devices !== null) {
+                filterDevices(devices, type);
+                if (type === "wireless") {
+                    this.updateWirelessStatus();
+                }
             }
         }
 
-        this.itemList = newItems;
-        this.updateWirelessStatus();
-
-        this.staticEventSubject.next({ event: "listChanged", value: void 0 });
+        if (listChanged) {
+            this.staticEventSubject.next({ event: "listChanged", value: void 0 });
+        }
     }
 
     private static updateWirelessStatus() {
@@ -168,17 +231,12 @@ export default class SteamHidDevice extends GenericSteamDevice {
 
         for (const [path, item] of this.itemList) {
             try {
-                if (item.type === "wirelessConnected" || item.type === "wirelessDisconnected") {
+                if (item.type === "wireless") {
                     const device = (item.device !== null ? item.device.hidDevice : null) || new HID(path);
                     device.sendFeatureReport(wirelessStateCheck);
 
                     const data = device.getFeatureReport(wirelessStateCheck[0], wirelessStateCheck.length);
-                    if (data[2] > 0 && data[3] === 2) {
-                        item.type = "wirelessConnected";
-                    }
-                    else {
-                        item.type = "wirelessDisconnected";
-                    }
+                    item.active = data[2] > 0 && data[3] === 2;
                 }
                 // tslint:disable-next-line:no-empty
             } catch (everything) { } // In case HID devices are disconnected

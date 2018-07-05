@@ -1,16 +1,17 @@
 import { Subject, Subscription } from "rxjs";
-import { GenericSteamDeviceEvents } from "../../models/interface/generic-steam-device-events.interface";
+import { GenericDeviceEvents } from "../../models/interface/generic-device-events.interface";
+import { SteamDeviceReport } from "../../models/interface/steam-device-report.interface";
 import { GenericEvent } from "../../models/type/generic-event.type";
-import GenericSteamDevice from "./generic-steam-device";
+import GenericDevice from "./generic-device";
 import SteamHidDevice from "./steam-hid-device";
 
-export default class SteamDevice {
+export default class SteamDevice extends GenericDevice {
     private connectionTimestamp: number = 0;
     private lastValidSensorPacket: number = 0;
-    private device: GenericSteamDevice | null = null;
+    private device: SteamHidDevice | null = null;
     private deviceEvents = new Subscription();
     private watcherEvents = new Subscription();
-    private eventSubject = new Subject<GenericEvent<GenericSteamDeviceEvents>>();
+    private eventSubject = new Subject<GenericEvent<GenericDeviceEvents & { report: SteamDeviceReport }>>();
     private watcher = { timer: null as (NodeJS.Timer | null), isWatching: false };
 
     get events() {
@@ -89,6 +90,14 @@ export default class SteamDevice {
             this.watcherEvents.unsubscribe();
             SteamHidDevice.stopMonitoring();
         }
+    }
+
+    public reportToDualshockReport(report: SteamDeviceReport) {
+        return this.isOpen() ? this.device!.reportToDualshockReport(report) : null;
+    }
+
+    public reportToDualshockMeta(report: SteamDeviceReport, padId: number) {
+        return this.isOpen() ? this.device!.reportToDualshockMeta(report, padId) : null;
     }
 
     private watcherCallback() {

@@ -1,4 +1,5 @@
 import { get } from "lodash";
+import * as long from "long";
 import * as microtime from "microtime";
 import { Device as HidDevice, devices as hidDevices, HID } from "node-hid";
 import { Subject } from "rxjs";
@@ -7,14 +8,22 @@ import {
     BluetoothProductId, VendorId,
     WiredProductId, WirelessProductId,
 } from "../../models/const/steam-hid-device.const";
+import { DualshockBattery } from "../../models/enum/dualshock-battery.enum";
+import { DualshockConnection } from "../../models/enum/dualshock-connection.enum";
+import { DualshockModel } from "../../models/enum/dualshock-model.enum";
+import { DualshockState } from "../../models/enum/dualshock-state.enum";
 import { SteamDeviceState } from "../../models/enum/steam-device-state.enum";
-import { GenericSteamDeviceEvents } from "../../models/interface/generic-steam-device-events.interface";
+import { DualshockMeta } from "../../models/interface/dualshock-meta.interface";
+import { DualshockReport } from "../../models/interface/dualshock-report.interface";
+import { GenericDeviceEvents } from "../../models/interface/generic-device-events.interface";
 import { MotionData } from "../../models/interface/motion-data.interface";
+import { SteamDeviceReport } from "../../models/interface/steam-device-report.interface";
 import { SteamHidDeviceStaticEvents } from "../../models/interface/steam-hid-device-static-events.interface";
 import { GenericEvent } from "../../models/type/generic-event.type";
-import GenericSteamDevice, { emptySteamDeviceReport } from "./generic-steam-device";
-import FeatureArray from "./steam-hid-device-feature-array";
+import { emptySteamDeviceReport } from "./empty-reports";
+import GenericDevice from "./generic-device";
 import SteamHidDeviceFeatureArray from "./steam-hid-device-feature-array";
+import FeatureArray from "./steam-hid-device-feature-array";
 
 // tslint:disable-next-line:no-var-requires
 const usbDetect = require("usb-detection");
@@ -40,7 +49,7 @@ interface Item {
     device: SteamHidDevice | null;
 }
 
-export default class SteamHidDevice extends GenericSteamDevice {
+export default class SteamHidDevice extends GenericDevice {
     static get staticEvents() {
         return this.staticEventSubject.asObservable();
     }
@@ -248,7 +257,7 @@ export default class SteamHidDevice extends GenericSteamDevice {
     private connectionTimestamp: number = 0;
     private lastValidSensorPacket: number = 0;
     private hidDevice: HID | null = null;
-    private eventSubject = new Subject<GenericEvent<GenericSteamDeviceEvents>>();
+    private eventSubject = new Subject<GenericEvent<GenericDeviceEvents & { report: SteamDeviceReport }>>();
 
     public get rawReport() {
         return this.report;
@@ -313,6 +322,96 @@ export default class SteamHidDevice extends GenericSteamDevice {
 
     public get events() {
         return this.eventSubject.asObservable();
+    }
+
+    public reportToDualshockReport(report: SteamDeviceReport): DualshockReport {
+        return {
+            packetCounter: report.packetCounter,
+            // tslint:disable-next-line:object-literal-sort-keys
+            motionTimestamp: long.fromNumber(report.timestamp, true),
+            button: {
+                R1: report.button.RS,
+                // tslint:disable-next-line:object-literal-sort-keys
+                L1: report.button.LS,
+                R2: report.button.RT,
+                L2: report.button.LT,
+                R3: report.button.rightPad,
+                L3: report.button.stick,
+                PS: report.button.steam,
+                SQUARE: report.button.X,
+                CROSS: report.button.A,
+                CIRCLE: report.button.B,
+                TRIANGLE: report.button.Y,
+                options: report.button.next,
+                share: report.button.previous,
+                dPad: {
+                    UP: report.button.dPad.UP,
+                    // tslint:disable-next-line:object-literal-sort-keys
+                    RIGHT: report.button.dPad.RIGHT,
+                    LEFT: report.button.dPad.LEFT,
+                    DOWN: report.button.dPad.DOWN,
+                },
+                touch: false,
+            },
+            position: {
+                left: {
+                    x: this.toDualshockPosition(report.position.stick.x),
+                    y: this.toDualshockPosition(report.position.stick.y),
+                },
+                right: {
+                    x: this.toDualshockPosition(report.position.rightPad.x),
+                    y: this.toDualshockPosition(report.position.rightPad.y),
+                },
+            },
+            trigger: {
+                R2: report.trigger.LEFT,
+                // tslint:disable-next-line:object-literal-sort-keys
+                L2: report.trigger.RIGHT,
+            },
+            accelerometer: {
+                x: -report.accelerometer.x,
+                y: -report.accelerometer.z,
+                z: report.accelerometer.y,
+            },
+            gyro: {
+                x: report.gyro.x,
+                y: -report.gyro.z,
+                z: -report.gyro.y,
+            },
+            trackPad: {
+                first: {
+                    isActive: false,
+                    // tslint:disable-next-line:object-literal-sort-keys
+                    id: 0,
+                    x: 0,
+                    y: 0,
+                },
+                second: {
+                    isActive: false,
+                    // tslint:disable-next-line:object-literal-sort-keys
+                    id: 0,
+                    x: 0,
+                    y: 0,
+                },
+            },
+        };
+    }
+
+    public reportToDualshockMeta(report: SteamDeviceReport, padId: number): DualshockMeta {
+        return {
+            batteryStatus: DualshockBattery.None,
+            connectionType: DualshockConnection.Usb,
+            isActive: microtime.now() - report.timestamp < 1000000,
+            macAddress: report.macAddress,
+            model: DualshockModel.DS4,
+            padId,
+            state: report.state === SteamDeviceState.Connected
+                ? DualshockState.Connected : DualshockState.Disconnected,
+        };
+    }
+
+    private toDualshockPosition(int16Value: number) {
+        return Math.floor((int16Value + 32768) * 255 / 65535);
     }
 
     private parseRawData(data: Buffer) {
@@ -456,6 +555,17 @@ export default class SteamHidDevice extends GenericSteamDevice {
             return true;
         }
         else { // Handle event based data
+            const toHex = (buffer: Buffer) => {
+                let output = `Buffer[${buffer.length}]:`;
+                for (const byte of buffer) {
+                    output += " 0" + byte.toString(16).slice(-2);
+                }
+                return output;
+            };
+
+            // tslint:disable-next-line:no-console
+            console.log(toHex(data));
+
             return false;
         }
     }

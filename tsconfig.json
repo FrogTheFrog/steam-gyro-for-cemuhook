@@ -1,17 +1,15 @@
 {
     "compilerOptions": {
         "target": "es2017",
+        "module": "commonjs",
         "sourceMap": true,
         "strict": true,
         "moduleResolution": "node",
         "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
-        "skipLibCheck": true
+        "emitDecoratorMetadata": true
     },
-    "files": [
-        "./src/backend/main.ts"
-    ],
     "exclude": [
-        "node_modules"
+        "node_modules",
+        "Rubbish"
     ]
 }

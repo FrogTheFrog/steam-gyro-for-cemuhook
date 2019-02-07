@@ -1,0 +1,29 @@
+<mat-toolbar>
+    <mat-icon aria-hidden="true" class="no-select align-middle" svgIcon="air-filter"></mat-icon>
+    <span class="align-middle">&nbsp;Filter settings</span>
+</mat-toolbar>
+<form [formGroup]="filterForm">
+    <ng-container formGroupName="filter">
+        <mat-form-field>
+            <mat-select placeholder="Filter type" formControlName="type">
+                <mat-option *ngFor="let data of filterData | keyvalue" [value]="data.key">
+                    {{data.value.selectName}}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
+        <ng-container formArrayName="parameters" *ngFor="let parameter of parameters.controls; let i = index;">
+            <mat-form-field>
+                <input matInput [step]="selectedFilterData.inputStep[i]" type="number"
+                    [formControlName]="i" [placeholder]="selectedFilterData.names[i]">
+                <mat-error *ngIf="parameter.invalid  && (parameter.dirty || parameter.touched)">
+                    <ng-container *ngIf="parameter.errors.required">
+                        Input is required.
+                    </ng-container>
+                    <ng-container *ngIf="parameter.errors.negative">
+                        Input must be bigger or equal to 0.
+                    </ng-container>
+                </mat-error>
+            </mat-form-field>
+        </ng-container>
+    </ng-container>
+</form>

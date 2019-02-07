@@ -1,0 +1,19 @@
+<mat-toolbar>
+    <a mat-button routerLink="/settings">
+        <mat-icon aria-hidden="true" class="no-select align-middle" svgIcon="settings"></mat-icon>
+        <span class="align-middle"> Settings</span>
+    </a>
+    <a mat-button routerLink="/data-stream">
+        <mat-icon aria-hidden="true" class="no-select align-middle" svgIcon="gamepad"></mat-icon>
+        <span class="align-middle"> Data stream</span>
+    </a>
+    <a mat-button routerLink="/message-log">
+        <mat-icon aria-hidden="true" class="no-select align-middle" svgIcon="playlist-edit"></mat-icon>
+        <span class="align-middle"> Message log</span>
+    </a>
+    <span class="fill-remaining-space"></span>
+    <mat-icon aria-hidden="true" class="no-select" style="margin-right: 0.5em;" [color]="deviceStatus ? 'accent' : 'warn'"
+        [matTooltip]="deviceStatus ? 'Connected' : 'Disconnected'" [svgIcon]="deviceStatus ? 'wifi' : 'wifi-off'"></mat-icon>
+    <button mat-button (click)="close()">Hide</button>
+</mat-toolbar>
+<router-outlet></router-outlet>

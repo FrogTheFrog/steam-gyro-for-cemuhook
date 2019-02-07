@@ -1,4 +1,3 @@
-let webpack = require("webpack");
 let nodeExternals = require("webpack-node-externals");
 let merge = require("webpack-merge");
 let path = require("path");
@@ -17,8 +16,7 @@ let clientConfig = {
         extensions: [".ts", ".js"]
     },
     module: {
-        rules: [
-            {
+        rules: [{
                 test: /\.ts$/i,
                 use: ["ts-loader"]
             },
@@ -29,7 +27,11 @@ let clientConfig = {
         ]
     },
     externals: [
-        nodeExternals()
+        nodeExternals({
+            modulesFromFile: {
+                exclude: ["microtime", "node-hid", "usb-detection"],
+            }
+        })
     ],
     node: {
         __dirname: false
@@ -53,7 +55,8 @@ let productionConfig = {
     mode: "production"
 };
 
-if (process.env.NODE_ENV === "production")
+if (process.env.NODE_ENV === "production") {
     module.exports = merge(clientConfig, productionConfig);
-else
+} else {
     module.exports = merge(clientConfig, developmentConfig);
+}

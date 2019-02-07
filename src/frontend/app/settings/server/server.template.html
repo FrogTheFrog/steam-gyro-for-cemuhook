@@ -1,0 +1,19 @@
+<mat-toolbar>
+    <mat-icon aria-hidden="true" class="no-select align-middle" svgIcon="server"></mat-icon>
+    <span class="align-middle">&nbsp;Server settings</span>
+</mat-toolbar>
+<form [formGroup]="serverForm">
+    <ng-container formGroupName="server">
+        <mat-form-field>
+            <input matInput type="text" placeholder="Server address" formControlName="address">
+            <mat-error *ngIf="hasErrors('server.address')">{{getErrorMsg('server.address')}}</mat-error>
+        </mat-form-field>
+        <mat-form-field>
+            <input matInput type="number" placeholder="Server port" formControlName="port">
+            <mat-error *ngIf="hasErrors('server.port')">{{getErrorMsg('server.port')}}</mat-error>
+        </mat-form-field>
+    </ng-container>
+    <button color="primary" mat-button [disabled]="!(canRestart | async)" (click)="restartServer()">
+        Restart server
+    </button>
+</form>

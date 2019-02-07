@@ -16,21 +16,13 @@ Make sure that Steam Controller configuration has gyro disabled in places where 
 
 ## How to use
 
-Drag executable anywhere you want and launch it. You **should** see (Windows might sometimes decide not to show it) similar notification if everything started successfully:
-
-![notification-example](./assets/notification-example.png "Notification example")
-
-If you right click on tray icon it will allow you to restart server or exit. Moreover, it will show server address and port on hover:
+Drag executable anywhere you want and launch it. If you right click on tray icon it will allow you to restart server or exit. Moreover, it will show server address and port on hover:
 
 ![tray-example](./assets/tray.png "Tray example")
 
-A settings file will be created in the same directory. If you want, you can change server address, port and click restart on tray. Or you can left-click on tray icon which will open a simple UI where you can edit settings in real time:
+A settings file will be created in the same directory. If you left-click on tray icon, it will open a simple UI where you can edit server settings or apply filter for motion data in real time:
 
 ![ui-settings](./assets/ui-settings.png "UI-settings example")
-
-UI also allows to connect to other Steam Controllers and observe their data stream:
-
-![ui-devices](./assets/ui-devices.png "UI-devices example")
 
 If you have changed default server IP or port, you will also need to change it in `cemuhook.ini` under `Input`:
 
@@ -42,7 +34,7 @@ Finally, go to Cemu and make sure motion source is selected:
 
 ## Icon
 
-The icon you see in image above is licensed, thus I am not allowed to share it.
+The icon is licensed to me, so keep that in mind.
 
 # Credits
 

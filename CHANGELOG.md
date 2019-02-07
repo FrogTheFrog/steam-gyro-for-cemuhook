@@ -1,6 +1,14 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.3.0 - 2019-02-07
+
+### Added
+- Filter support for motion data filtering (#4 issue).
+
+### Fixed
+- #7 issue.
+
 ## 1.2.0 - 2018-01-09
 
 ### Added

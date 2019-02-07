@@ -1,31 +1,36 @@
+@import './theme';
+@import '~hack-font/build/web/hack.css';
 
-// Material
-@import '~@angular/material/theming';
 @include mat-core();
-
-$dark-theme-primary: mat-palette($mat-amber);
-$dark-theme-accent: mat-palette($mat-green, A200);
-$dark-theme-warn: mat-palette($mat-red, A200);
-$dark-theme: mat-dark-theme($dark-theme-primary, $dark-theme-accent, $dark-theme-warn);
-$theme-config: mat-typography-config();
-
 @include angular-material-theme($dark-theme);
-
-// App style
 
 $background: map-get($dark-theme, background);
 
-    body,
-    html {
-        margin: 0;
-        height: 100%;
-        box-sizing: border-box;
+body,
+html {
+    margin: 0;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.window-resize-border {
+    border: solid mat-color($background, status-bar) 4px;
+}
+
+.fill-remaining-space {
+    flex: 1 1 auto;
+}
+
+.align-middle {
+    vertical-align: middle;
+}
+
+.no-select {
+    user-select: none;
+}
+
+.cdk-overlay-backdrop.cdk-overlay-backdrop-showing {
+    &.dark-backdrop {
+        background: rgba(0, 0, 0, 0.85);
     }
-    
-    .window-resize-border {
-        border: solid mat-color($background, status-bar) 4px;
-    }
-    
-    .fill-remaining-space {
-        flex: 1 1 auto;
-    }
+}

@@ -1,0 +1,22 @@
+@import "../../../theme.scss";
+
+$background: map-get($dark-theme, background);
+
+:host {
+    @include mat-elevation(5);
+
+    width: 350px;
+    height: 300px;
+
+    > form {
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        display: flex;
+        margin: 32px;
+        flex-direction: column;
+    }
+}

@@ -2,10 +2,10 @@ node_modules/
 dist/
 private/
 release/
-npm-debug.log*
+*.log*
 .debug/
 steam-gyro.json
-steam-gyro-errors.log
 Rubbish/
 desktop.ini
 steam-gyro.json
+.debris

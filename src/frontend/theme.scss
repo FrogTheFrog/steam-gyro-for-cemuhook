@@ -1,0 +1,33 @@
+$material-design-icons-font-path: '~material-design-icons-iconfont/dist/fonts/';
+
+@import '~@angular/material/theming';
+
+$dark-theme-primary: mat-palette($mat-amber);
+$dark-theme-accent: mat-palette($mat-green, A200);
+$dark-theme-warn: mat-palette($mat-red, A200);
+$dark-theme: mat-dark-theme($dark-theme-primary, $dark-theme-accent, $dark-theme-warn);
+
+@mixin toggle-button-theme() {
+    .mat-button-toggle-checked {
+        color: mat-color($dark-theme-primary);
+    }
+}
+
+@mixin custom-scroll-bar($track: #555, $thumb: #999, $corner: #555) {
+    &::-webkit-scrollbar {
+        height: 12px;
+        width: 12px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: $thumb;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: $track;
+    }
+
+    &::-webkit-scrollbar-corner {
+        background: $corner;
+    }
+}

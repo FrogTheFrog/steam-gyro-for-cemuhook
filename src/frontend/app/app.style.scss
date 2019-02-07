@@ -1,0 +1,30 @@
+@import "../theme.scss";
+
+$background: map-get($dark-theme, background);
+
+:host {
+    height: 100%;
+
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 0px 1fr;
+
+    >mat-toolbar {
+        grid-row: 1 / 2;
+        -webkit-app-region: drag;
+
+        * {
+            -webkit-app-region: no-drag;
+        }
+    }
+
+    >router-outlet {
+        grid-row: 2 / 3;
+        display: none;
+    }
+
+    &::ng-deep>router-outlet+* {
+        grid-row: 3 / 4;
+        background-color: mat-color($background, background);
+    }
+}

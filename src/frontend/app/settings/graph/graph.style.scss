@@ -1,0 +1,40 @@
+@import "../../../theme.scss";
+
+$background: map-get($dark-theme, background);
+
+:host {
+    >.graph {
+        @include mat-elevation(5);
+
+        >.graph-container {
+            width: 730px;
+            height: 500px;
+
+            >.placeholder-container {
+                height: 100%;
+                
+                display: flex;
+                align-items: center;
+                justify-content: center;
+    
+                >.placeholder {
+                    width: auto;
+    
+                    @include mat-elevation(5);
+                }
+            }
+        }
+    }
+
+    >.options-container {
+        display: flex;
+        margin-top: 5px;
+
+        @include toggle-button-theme();
+
+        >mat-button-toggle-group {
+            @include mat-elevation(5);
+            margin-left: 5px;
+        }
+    }
+}

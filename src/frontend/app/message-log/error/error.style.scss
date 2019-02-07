@@ -1,0 +1,14 @@
+@import "../../../theme.scss";
+
+$background: map-get($dark-theme, background);
+$foreground: map-get($dark-theme, foreground);
+
+:host {
+    max-width: 75vw;
+
+    mat-card-content {
+        font-family: "Hack";
+        white-space: pre-wrap;
+        font-size: 13px;
+    }
+}

@@ -1,0 +1,47 @@
+@import "../../theme.scss";
+
+$background: map-get($dark-theme, background);
+$foreground: map-get($dark-theme, foreground);
+
+:host {
+    display: grid;
+    grid-auto-columns: 1fr;
+    grid-auto-rows: auto;
+    overflow: auto;
+
+    border: solid mat-color($background, background) 5px;
+
+    >.list {
+        overflow-y: auto;
+        padding: 0;
+
+        >.item {
+            &:nth-child(odd) {
+                background-color: rgb(40, 40, 40);
+            }
+
+            &:nth-child(even) {
+                background-color: rgb(25, 25, 25);
+            }
+
+            &:hover {
+                background-color: rgb(60, 60, 60);
+            }
+        }
+
+        @include custom-scroll-bar();
+    }
+
+    >.placeholder-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-grow: 1;
+
+        >.placeholder {
+            width: auto;
+
+            @include mat-elevation(5);
+        }
+    }
+}

@@ -1,0 +1,17 @@
+<ng-container *ngIf="messageLogService.list | async; let items">
+    <mat-action-list class="list" *ngIf="items.length > 0; else emptyList">
+        <mat-list-item class="item" *ngFor="let item of items" (click)="showMessage(item)">
+            <mat-icon matListIcon [svgIcon]="item.type === 'error' ? 'alert-circle-outline' : 'information-outline'"
+                [color]="item.type === 'error' ? 'warn' : 'accent'"></mat-icon>
+            <h3 matLine>{{ item.type === 'error' ? item.data.name : 'Information'}}</h3>
+            <p matLine>{{ item.type === 'error' ? item.data.message : item.data }}</p>
+        </mat-list-item>
+    </mat-action-list>
+    <ng-template #emptyList>
+        <div class="placeholder-container">
+            <mat-toolbar class="placeholder">
+                There are no messages.
+            </mat-toolbar>
+        </div>
+    </ng-template>
+</ng-container>

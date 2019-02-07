@@ -1,0 +1,54 @@
+<div class="graph">
+    <mat-toolbar>
+        <mat-icon aria-hidden="true" class="no-select align-middle" svgIcon="chart-line"></mat-icon>
+        <span class="align-middle">&nbsp;Motion data graph</span>
+        <span class="fill-remaining-space"></span>
+        <button class="align-middle" mat-button (click)="toggleStream()" color="primary" mat-icon-button>
+            <mat-icon aria-hidden="true" class="no-select align-middle" [matTooltip]="(isStreaming | async) ? 'Stop monitoring' : 'Start monitoring'"
+                [svgIcon]="(isStreaming | async) ? 'stop' : 'play'"></mat-icon>
+        </button>
+    </mat-toolbar>
+    <div class="graph-container" *ngIf="dataStream | async; let data;">
+        <ngx-charts-line-chart *ngIf="data.length > 0; else noData" [scheme]="colorScheme" [results]="data" [xAxis]="false"
+            [yAxis]="true" [legend]="false" [autoScale]="true" [timeline]="!(isStreaming | async)" [animations]="false">
+            <ng-template #tooltipTemplate let-item="model">
+                <div [ngStyle]="{'display': 'flex', 'font-size': '16px'}">
+                    {{item.series}}
+                </div>
+            </ng-template>
+            <ng-template #seriesTooltipTemplate let-items="model">
+                <div *ngFor="let item of items" [ngStyle]="{'display': 'flex', 'align-items': 'baseline', 'font-size': '16px'}">
+                    <div [ngStyle]="{'border-radius': '25%', 'margin-right': '5px', 'height': '9px', 'width': '9px', 'background-color': item.color}"></div>
+                    <div [ngStyle]="{'display': 'flex', 'flex-grow': '1', 'align-items': 'baseline', 'justify-content': 'space-between'}">
+                        <div [ngStyle]="{'flex-shrink': '0'}">{{ item.series }}:&nbsp;</div>
+                        <div [ngStyle]="{'flex-shrink': '0'}">{{ item.value }}</div>
+                    </div>
+                </div>
+            </ng-template>
+        </ngx-charts-line-chart>
+        <ng-template #noData>
+            <div class="placeholder-container">
+                <mat-toolbar class="placeholder">
+                    No data available
+                </mat-toolbar>
+            </div>
+        </ng-template>
+    </div>
+</div>
+<div class="options-container">
+    <span class="fill-remaining-space"></span>
+    <mat-button-toggle-group [value]="sensor" (change)="sensor = $event.value" class="align-middle" appearance="legacy">
+        <mat-button-toggle value="accelerometer">Accelerometer</mat-button-toggle>
+        <mat-button-toggle value="gyro">Gyroscope</mat-button-toggle>
+    </mat-button-toggle-group>
+    <mat-button-toggle-group [value]="axis" (change)="axis = $event.value" class="align-middle" appearance="legacy">
+        <mat-button-toggle value="x">X</mat-button-toggle>
+        <mat-button-toggle value="y">Y</mat-button-toggle>
+        <mat-button-toggle value="z">Z</mat-button-toggle>
+    </mat-button-toggle-group>
+    <mat-button-toggle-group [value]="dataSet" (change)="dataSet = $event.value" class="align-middle" appearance="legacy">
+        <mat-button-toggle value="original">Original</mat-button-toggle>
+        <mat-button-toggle value="filtered">Filtered</mat-button-toggle>
+        <mat-button-toggle value="both">Both</mat-button-toggle>
+    </mat-button-toggle-group>
+</div>

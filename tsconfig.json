@@ -1,16 +1,15 @@
 {
     "compilerOptions": {
-        "target": "es2016",
-        "module": "es2016",
-        "moduleResolution": "node",
+        "target": "es2017",
+        "module": "commonjs",
         "sourceMap": true,
-        "emitDecoratorMetadata": true,
+        "strict": true,
+        "moduleResolution": "node",
         "experimentalDecorators": true,
-        "removeComments": false,
-        "noImplicitAny": true,
-        "suppressImplicitAnyIndexErrors": true
+        "emitDecoratorMetadata": true
     },
     "exclude": [
-        "node_modules"
+        "node_modules",
+        "Rubbish"
     ]
 }

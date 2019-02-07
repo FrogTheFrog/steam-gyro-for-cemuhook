@@ -4,8 +4,19 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "Webpack: Frontend",
+            "program": "${workspaceFolder}/node_modules/webpack/bin/webpack.js",
+            "args": [
+                "--config",
+                "./webpack/frontend.js"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "Electron: Main",
             "protocol": "inspector",
+            "outputCapture": "std",
             "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron",
             "runtimeArgs": [
                 "--remote-debugging-port=9223",
@@ -22,8 +33,9 @@
             "name": "Electron: Renderer",
             "type": "chrome",
             "request": "attach",
+            "trace": true,
             "port": 9223,
-            "webRoot": "${workspaceRoot}/dist/renderer",
+            "webRoot": "${workspaceRoot}/src",
             "timeout": 30000
         }
     ],

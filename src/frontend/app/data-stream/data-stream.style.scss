@@ -1,0 +1,29 @@
+@import "../../theme.scss";
+
+$background: map-get($dark-theme, background);
+$foreground: map-get($dark-theme, foreground);
+
+:host {
+    display: grid;
+    grid-auto-columns: 1fr;
+    grid-auto-rows: 1fr;
+
+    overflow: auto;
+
+    border: solid mat-color($background, background) 5px;
+    background-color: mat-color($background, status-bar) !important;
+
+    >.data {
+        font-family: "Hack";
+        font-size: 14px;
+        box-sizing: border-box;
+
+        white-space: pre;
+        color: mat-color($foreground, text);
+
+        height: 100%;
+        width: 100%;
+    }
+
+    @include custom-scroll-bar();
+}

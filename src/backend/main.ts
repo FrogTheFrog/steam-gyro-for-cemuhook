@@ -1,4 +1,3 @@
-import { dialog } from "electron";
 import { AppManager } from "./lib/app-manager";
 
 const userDataDir = process.env.PORTABLE_EXECUTABLE_DIR || "";

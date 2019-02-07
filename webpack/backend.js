@@ -29,7 +29,8 @@ let clientConfig = {
     externals: [
         nodeExternals({
             modulesFromFile: {
-                exclude: ["microtime", "node-hid", "usb-detection"],
+                exclude: ["devDependencies"],
+                include: ["dependencies"]
             }
         })
     ],

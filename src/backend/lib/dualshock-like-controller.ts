@@ -1,7 +1,13 @@
 import { Subject } from "rxjs";
 import { Filter, privateData } from "../../shared/lib";
 import { MotionDataWithTimestamp, TypedFilterData } from "../../shared/models";
-import { DualshockData, GenericDualshockController, SteamDeviceReport } from "../models";
+import {
+    DualshockData,
+    DualshockMeta,
+    DualshockReport,
+    GenericDualshockController,
+    SteamDeviceReport,
+} from "../models";
 import { SteamDevice } from "./steam-device";
 
 /**
@@ -49,12 +55,18 @@ export class DualshockLikeController extends GenericDualshockController<SteamDev
         this.device.onOpenClose.subscribe((value) => pd.openCloseSubject.next(value));
         this.device.onReport.subscribe((value) => {
             const output = this.filter.setInput(value).filter(50000).getOutput();
+            let meta: DualshockMeta | null;
+            let report: DualshockReport | null;
+
             value = { ...value, ...output };
             pd.reportSubject.next(value);
-            pd.dualshockDataSubject.next({
-                meta: this.device.reportToDualshockMeta(value, this.id)!,
-                report: this.device.reportToDualshockReport(value)!,
-            });
+
+            meta = this.device.reportToDualshockMeta(value, this.id);
+            report = this.device.reportToDualshockReport(value);
+
+            if (report !== null && meta !== null) {
+                pd.dualshockDataSubject.next({ meta, report });
+            }
         });
     }
 

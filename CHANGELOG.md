@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.3.1 - 2019-02-08
+
+### Fixed
+- #20 issue.
+
 ## 1.3.0 - 2019-02-07
 
 ### Added

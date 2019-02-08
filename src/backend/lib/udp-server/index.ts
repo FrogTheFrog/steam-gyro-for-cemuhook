@@ -472,9 +472,9 @@ export class UdpServer {
                     outBuffer.writeUInt16LE(report.trackPad.second.y, outIndex, true);
                     outIndex += 2;
 
-                    outBuffer.writeUInt32LE(report.motionTimestamp.low, outIndex, true);
+                    outBuffer.writeUInt32LE(report.motionTimestamp.low >>> 0, outIndex, true);
                     outIndex += 4;
-                    outBuffer.writeUInt32LE(report.motionTimestamp.high, outIndex, true);
+                    outBuffer.writeUInt32LE(report.motionTimestamp.high >>> 0, outIndex, true);
                     outIndex += 4;
 
                     outBuffer.writeFloatLE(report.accelerometer.x, outIndex, true);

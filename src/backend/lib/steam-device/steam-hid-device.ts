@@ -383,6 +383,7 @@ export class SteamHidDevice extends GenericSteamDevice {
                 const item = SteamHidDevice.itemList.get(devicePath) as Item;
                 if (item.device === null) {
                     this.hidDevice = new HID(devicePath);
+                    
                     this.hidDevice.on("data", (data: Buffer) => {
                         if (this.parseRawData(data)) {
                             pd.reportSubject.next(this.currentReport);
@@ -397,7 +398,9 @@ export class SteamHidDevice extends GenericSteamDevice {
                             pd.errorSubject.next(error);
                         }
                     });
+
                     item.device = this;
+                    this.connectionTimestamp = microtime.now();
                     pd.openCloseSubject.next(true);
                 }
             }
@@ -542,6 +545,11 @@ export class SteamHidDevice extends GenericSteamDevice {
             report.state = SteamDeviceState.Connected;
             report.timestamp = time - this.connectionTimestamp;
 
+            if (report.timestamp < 0) {
+                this.connectionTimestamp = time;
+                report.timestamp = 0;
+            }
+
             report.packetCounter = data.readUInt32LE(index, true);
             index += 4;
 
@@ -637,7 +645,7 @@ export class SteamHidDevice extends GenericSteamDevice {
 
             this.currentMotionData.accelerometer = report.accelerometer;
             this.currentMotionData.gyro = report.gyro;
-            this.currentMotionData.timestamp = time;
+            this.currentMotionData.timestamp = report.timestamp;
         }
         else if (event === HidEvent.ConnectionUpdate) {
             const connection = data[index];

@@ -25,6 +25,9 @@
 			],
 			"icon": "./assets/icon.ico"
 		},
+		"linux": {
+			"icon": "./assets/icon.png"
+		},
 		"portable": {
 			"artifactName": "${productName}.${ext}"
 		},

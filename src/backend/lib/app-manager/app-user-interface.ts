@@ -55,8 +55,16 @@ export class AppUserInterface {
         serverRestartCallback: () => void,
         showRendererCallback: () => void,
     ) {
-        this.icon = nativeImage.createFromPath(path.join(__dirname, require("../../../../assets/icon.ico")));
-
+        let iconpath: string;
+        if (process.platform === "win32"){
+            iconpath = path.join(__dirname, require("../../../../assets/icon.ico"));
+        } else { // linux, macos, etc.
+            iconpath = path.join(__dirname, require("../../../../assets/icon.png"));
+        }
+        this.icon = nativeImage.createFromPath(iconpath);
+        if (!this.icon){
+            throw Error("Could not find tray icon image.");
+        }
         this.menu = Menu.buildFromTemplate([
             {
                 enabled: false,
@@ -65,6 +73,11 @@ export class AppUserInterface {
             },
             {
                 type: "separator",
+            },
+            { // Linux icons can't be double clicked
+                click: showRendererCallback,
+                label: "Show configuration menu",
+                type: "normal",
             },
             {
                 click: serverRestartCallback,

@@ -16,7 +16,7 @@ export class HidFeatureArray {
      * Returns a 62 bytes long array.
      */
     get array(): number[] {
-        return ([] as number[]).concat([this.featureId, this.featureId, this.dataLength], ...this.data);
+        return ([] as number[]).concat([0, this.featureId, this.dataLength], ...this.data);
     }
 
     /**

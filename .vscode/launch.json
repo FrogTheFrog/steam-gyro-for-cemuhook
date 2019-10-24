@@ -37,7 +37,27 @@
             "port": 9223,
             "webRoot": "${workspaceRoot}/src",
             "timeout": 30000
-        }
+        },
+        {
+            "name": "Linux Debug",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceRoot}/src/backend/main.ts",
+            "stopOnEntry": false,
+            "args": [],
+            "cwd": "${workspaceRoot}/dist",
+            "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron",
+            "runtimeArgs": [
+                "--enable-logging"
+            ],
+            "env": {},
+            "sourceMaps": true,
+            "outFiles": [
+                "${workspaceRoot}/dist/**/*.js"
+            ],
+            "internalConsoleOptions": "openOnSessionStart",
+            "console": "integratedTerminal"
+        },
     ],
     "compounds": [
         {

@@ -13,8 +13,8 @@
 		"url": "https://github.com/FrogTheFrog/steam-gyro-for-cemuhook"
 	},
 	"build": {
-		"appId": "com.steam-gyro.app",
-		"productName": "steam-gyro",
+		"appId": "com.steam-gyro-for-cemuhook.app",
+		"productName": "steam-gyro-for-cemuhook",
 		"compression": "normal",
 		"directories": {
 			"output": "release"
@@ -26,7 +26,11 @@
 			"icon": "./assets/icon.ico"
 		},
 		"linux": {
-			"icon": "./assets/icon.png"
+			"target": [
+				"AppImage"
+			],
+			"icon": "./assets/icon.png",
+			"category": "Utility"
 		},
 		"portable": {
 			"artifactName": "${productName}.${ext}"
@@ -46,8 +50,8 @@
 		"build:backend": "cross-env NODE_ENV=production webpack --config ./webpack/backend.js",
 		"build:frontend": "cross-env NODE_ENV=production webpack --config ./webpack/frontend.js",
 		"build:dist": "rimraf dist && npm run build:backend && npm run build:frontend",
-		"build:win": "build --win --x64",
-		"build:linux": "build --linux --x64"
+		"build:win": "rimraf release && ./node_modules/.bin/electron-builder build --win --x64",
+		"build:linux": "rimraf release && ./node_modules/.bin/electron-builder build --linux --x64"
 	},
 	"dependencies": {
 		"microtime": "^3.0.0",

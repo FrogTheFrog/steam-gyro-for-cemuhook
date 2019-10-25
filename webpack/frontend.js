@@ -115,7 +115,7 @@ let clientConfig = {
 };
 
 let developmentConfig = {
-    devtool: "eval-source-map",
+    devtool: "source-map",
     mode: "development"
 };
 

@@ -245,8 +245,7 @@ export class SteamHidDevice extends GenericSteamDevice {
                         filter: (device) => {
                             return device.productId === SteamHidId.DongleProduct &&
                                 device.vendorId === SteamHidId.Vendor &&
-                                device.interface > 0 && device.interface < 5 &&
-                                device.usagePage === 0xFF00;
+                                device.interface > 0 && device.interface < 5;
                         },
                         sort: (a, b) => {
                             return a.interface > b.interface ? 1 : 0;
@@ -259,8 +258,7 @@ export class SteamHidDevice extends GenericSteamDevice {
                         filter: (device) => {
                             return device.productId === SteamHidId.WiredProduct &&
                                 device.vendorId === SteamHidId.Vendor &&
-                                device.interface > 0 && device.interface < 5 &&
-                                device.usagePage === 0xFF00;
+                                device.interface > 0 && device.interface < 5;
                         },
                         sort: (a, b) => {
                             return a.interface > b.interface ? 1 : 0;

@@ -25,6 +25,9 @@
 			],
 			"icon": "./assets/icon.ico"
 		},
+		"linux": {
+			"icon": "./assets/icon.png"
+		},
 		"portable": {
 			"artifactName": "${productName}.${ext}"
 		},
@@ -43,7 +46,8 @@
 		"build:backend": "cross-env NODE_ENV=production webpack --config ./webpack/backend.js",
 		"build:frontend": "cross-env NODE_ENV=production webpack --config ./webpack/frontend.js",
 		"build:dist": "rimraf dist && npm run build:backend && npm run build:frontend",
-		"build:win": "build --win --x64"
+		"build:win": "build --win --x64",
+		"build:linux": "build --linux --x64"
 	},
 	"dependencies": {
 		"microtime": "^3.0.0",

@@ -25,6 +25,7 @@ addons:
       - libusb-1.0-0-dev
       - libudev-dev
       - rpm
+      - bsdtar
 
 install:
   - echo "Installing node modules."

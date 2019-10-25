@@ -24,6 +24,7 @@ addons:
       - gcc-multilib
       - libusb-1.0-0-dev
       - libudev-dev
+      - rpm
 
 install:
   - echo "Installing node modules."

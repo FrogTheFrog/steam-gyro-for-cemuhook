@@ -2,7 +2,7 @@
 	"name": "steam-gyro-for-cemuhook",
 	"description": "App to add Steam Controller's motion support to Cemuhook",
 	"authors": "FrogTheFrog",
-	"version": "1.3.1",
+	"version": "1.3.2",
 	"main": "./dist/main.bundle.js",
 	"author": {
 		"name": "FrogTheFrog",
@@ -41,17 +41,17 @@
 		]
 	},
 	"scripts": {
-		"postinstall": "./node_modules/.bin/electron-rebuild",
-		"lint": "./node_modules/.bin/tslint --project .",
+		"postinstall": "electron-rebuild",
+		"lint": "tslint --project .",
 		"test": "npm run lint && npm run build:dist",
-		"start": "./node_modules/.bin/electron ./dist/main.bundle.js",
+		"start": "electron ./dist/main.bundle.js",
 		"watch:backend": "webpack --watch --config ./webpack/backend.js",
 		"watch:frontend": "webpack --watch --config ./webpack/frontend.js",
 		"build:backend": "cross-env NODE_ENV=production webpack --config ./webpack/backend.js",
 		"build:frontend": "cross-env NODE_ENV=production webpack --config ./webpack/frontend.js",
 		"build:dist": "rimraf dist && npm run build:backend && npm run build:frontend",
-		"build:win": "rimraf release && ./node_modules/.bin/electron-builder build --win --x64",
-		"build:linux": "rimraf release && ./node_modules/.bin/electron-builder build --linux --x64"
+		"build:win": "rimraf release && electron-builder build --win --x64",
+		"build:linux": "rimraf release && electron-builder build --linux --x64"
 	},
 	"dependencies": {
 		"microtime": "^3.0.0",

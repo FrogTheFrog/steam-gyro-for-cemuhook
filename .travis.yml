@@ -1,4 +1,4 @@
- matrix:
+matrix:
   include:
     - os: linux
       services: docker
@@ -7,9 +7,9 @@
 
 cache:
   directories:
-  - node_modules
-  - $HOME/.cache/electron
-  - $HOME/.cache/electron-builder
+    - node_modules
+    - $HOME/.cache/electron
+    - $HOME/.cache/electron-builder
 
 install:
   - echo "Installing node modules."

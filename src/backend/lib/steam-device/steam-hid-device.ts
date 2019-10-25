@@ -532,7 +532,7 @@ export class SteamHidDevice extends GenericSteamDevice {
 
         index += 2; // skip reading id (or something else)
 
-        event = data.readUInt16LE(index, true);
+        event = data.readUInt16LE(index);
         index += 2;
 
         if (event === HidEvent.DataUpdate) {
@@ -548,7 +548,7 @@ export class SteamHidDevice extends GenericSteamDevice {
                 report.timestamp = 0;
             }
 
-            report.packetCounter = data.readUInt32LE(index, true);
+            report.packetCounter = data.readUInt32LE(index);
             index += 4;
 
             buttonData = data[index++];
@@ -587,9 +587,9 @@ export class SteamHidDevice extends GenericSteamDevice {
             index += 3; // padding?
 
             if (leftPadReading) {
-                report.position.leftPad.x = data.readInt16LE(index, true);
+                report.position.leftPad.x = data.readInt16LE(index);
                 index += 2;
-                report.position.leftPad.y = data.readInt16LE(index, true);
+                report.position.leftPad.y = data.readInt16LE(index);
 
                 if (!preserveData) {
                     report.position.stick.x = 0;
@@ -597,9 +597,9 @@ export class SteamHidDevice extends GenericSteamDevice {
                 }
             }
             else {
-                report.position.stick.x = data.readInt16LE(index, true);
+                report.position.stick.x = data.readInt16LE(index);
                 index += 2;
-                report.position.stick.y = data.readInt16LE(index, true);
+                report.position.stick.y = data.readInt16LE(index);
 
                 if (!preserveData) {
                     report.position.leftPad.x = 0;
@@ -608,34 +608,34 @@ export class SteamHidDevice extends GenericSteamDevice {
             }
             index += 2;
 
-            report.position.rightPad.x = data.readInt16LE(index, true);
+            report.position.rightPad.x = data.readInt16LE(index);
             index += 2;
-            report.position.rightPad.y = data.readInt16LE(index, true);
+            report.position.rightPad.y = data.readInt16LE(index);
             index += 2;
 
             index += 4; // padding?
 
-            report.accelerometer.x = data.readInt16LE(index, true) * SteamDeviceRatios.Accelerometer;
+            report.accelerometer.x = data.readInt16LE(index) * SteamDeviceRatios.Accelerometer;
             index += 2;
-            report.accelerometer.y = data.readInt16LE(index, true) * SteamDeviceRatios.Accelerometer;
+            report.accelerometer.y = data.readInt16LE(index) * SteamDeviceRatios.Accelerometer;
             index += 2;
-            report.accelerometer.z = data.readInt16LE(index, true) * SteamDeviceRatios.Accelerometer;
-            index += 2;
-
-            report.gyro.x = data.readInt16LE(index, true) * SteamDeviceRatios.Gyro;
-            index += 2;
-            report.gyro.y = data.readInt16LE(index, true) * SteamDeviceRatios.Gyro;
-            index += 2;
-            report.gyro.z = data.readInt16LE(index, true) * SteamDeviceRatios.Gyro;
+            report.accelerometer.z = data.readInt16LE(index) * SteamDeviceRatios.Accelerometer;
             index += 2;
 
-            report.quaternion.x = data.readInt16LE(index, true) * SteamDeviceRatios.Quaternion;
+            report.gyro.x = data.readInt16LE(index) * SteamDeviceRatios.Gyro;
             index += 2;
-            report.quaternion.y = data.readInt16LE(index, true) * SteamDeviceRatios.Quaternion;
+            report.gyro.y = data.readInt16LE(index) * SteamDeviceRatios.Gyro;
             index += 2;
-            report.quaternion.z = data.readInt16LE(index, true) * SteamDeviceRatios.Quaternion;
+            report.gyro.z = data.readInt16LE(index) * SteamDeviceRatios.Gyro;
             index += 2;
-            report.quaternion.w = data.readInt16LE(index, true) * SteamDeviceRatios.Quaternion;
+
+            report.quaternion.x = data.readInt16LE(index) * SteamDeviceRatios.Quaternion;
+            index += 2;
+            report.quaternion.y = data.readInt16LE(index) * SteamDeviceRatios.Quaternion;
+            index += 2;
+            report.quaternion.z = data.readInt16LE(index) * SteamDeviceRatios.Quaternion;
+            index += 2;
+            report.quaternion.w = data.readInt16LE(index) * SteamDeviceRatios.Quaternion;
 
             if (this.isSensorDataStuck(this.currentMotionData, report, report.packetCounter)) {
                 this.enableSensors();
@@ -662,7 +662,7 @@ export class SteamHidDevice extends GenericSteamDevice {
             report.state = SteamDeviceState.Connected;
 
             index += 8;
-            report.battery = data.readInt16LE(index, true);
+            report.battery = data.readInt16LE(index);
         }
         else { // unknown event
             return false;

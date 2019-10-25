@@ -228,7 +228,7 @@ export class AppManager {
             return this.settings.current.filter;
         }).on("PUT", "settings:filter", (data) => {
             this.settings.current.filter.type = data.type;
-            this.settings.current.filter.data[data.type] = data.value;
+            (this.settings.current.filter.data[data.type] as number[]) = data.value;
 
             this.server.controller.setFilter(data);
 

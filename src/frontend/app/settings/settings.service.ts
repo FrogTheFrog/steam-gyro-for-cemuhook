@@ -5,11 +5,6 @@ import { MessageLogService } from "../message-log/message-log.service";
 import { IpcService } from "../shared/services/ipc.service";
 import { GraphData } from "./graph/graph-data";
 
-interface DataItem {
-    name: number;
-    value: number;
-}
-
 /**
  * Service for handling settings exchange.
  */
@@ -125,7 +120,7 @@ export class SettingsService {
     public setFilterData(data: TypedFilterData) {
         if (this.filterSettings !== null) {
             this.filterSettings.type = data.type;
-            this.filterSettings.data[data.type] = data.value;
+            (this.filterSettings.data[data.type] as number[]) = data.value;
         }
         return this.ipc.sender.request("PUT", "settings:filter", data);
     }

@@ -23,6 +23,9 @@
 			"target": [
 				"portable"
 			],
+			"publish": [
+				"github"
+			],
 			"icon": "./assets/icon.ico"
 		},
 		"linux": {
@@ -31,6 +34,9 @@
 				"snap",
 				"rpm",
 				"deb"
+			],
+			"publish": [
+				"github"
 			],
 			"icon": "./assets/icon.png",
 			"category": "Utility"

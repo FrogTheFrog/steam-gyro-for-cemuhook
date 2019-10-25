@@ -11,10 +11,17 @@ cache:
   - $HOME/.cache/electron
   - $HOME/.cache/electron-builder
 
+install:
+  - echo "Installing node modules."
+  - npm install
+
 script:
+  - echo "Building app and running tests."
+  - npm test
+
   - |
-    npm test
-    if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+    if [ "$TRAVIS_BRANCH" == "master" ]; then
+      echo "Packaging and distributing builds."
       docker run --rm \
         --env-file <(env | grep -iE 'DEBUG|NODE_|ELECTRON_|YARN_|NPM_|CI|CIRCLE|TRAVIS|APPVEYOR_|CSC_|_TOKEN|_KEY|AWS_|STRIP|BUILD_') \
         -v ${PWD}:/project \
@@ -22,6 +29,8 @@ script:
         -v ~/.cache/electron-builder:/root/.cache/electron-builder \
         electronuserland/builder:wine \
         /bin/bash -c "npm run build:win && npm run build:linux"
+    else
+      echo "Skipping packaging and distribution."
     fi
 
 before_cache:

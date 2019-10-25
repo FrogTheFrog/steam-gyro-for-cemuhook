@@ -38,7 +38,7 @@ script:
     if [ "$TRAVIS_BRANCH" == "master" ]; then
       echo "Packaging and distributing build."
       if [ $TRAVIS_OS_NAME == "linux" ]; then
-        SHELL=/bin/bash npm run build:linux
+        npm run build:linux
       else
         npm run build:win
       fi

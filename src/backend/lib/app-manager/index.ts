@@ -2,7 +2,7 @@ import { app } from "electron";
 import * as path from "path";
 import { Subscription } from "rxjs";
 import { createLogger, format, Logger, transports } from "winston";
-import { IpcEvents, MessageObject, FilterData } from "../../../shared/models";
+import { IpcEvents, MessageObject } from "../../../shared/models";
 import { IpcMain } from "../ipc-main";
 import { AppServer } from "./app-server";
 import { AppUserInterface } from "./app-user-interface";

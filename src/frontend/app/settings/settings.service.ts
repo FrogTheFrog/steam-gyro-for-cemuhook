@@ -5,7 +5,6 @@ import { MessageLogService } from "../message-log/message-log.service";
 import { IpcService } from "../shared/services/ipc.service";
 import { GraphData } from "./graph/graph-data";
 
-
 /**
  * Service for handling settings exchange.
  */

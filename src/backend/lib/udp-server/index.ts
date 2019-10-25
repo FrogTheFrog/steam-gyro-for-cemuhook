@@ -1,7 +1,7 @@
 import { crc32 } from "crc";
 import * as dgram from "dgram";
 import { AddressInfo } from "net";
-import { uint32, MersenneTwister19937, Random } from "random-js";
+import { MersenneTwister19937, Random } from "random-js";
 import { Subject, Subscription } from "rxjs";
 import { privateData } from "../../../shared/lib";
 import {

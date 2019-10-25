@@ -1,11 +1,11 @@
 matrix:
   include:
     - os: linux
-      language: generic
+      language: node_js
       node_js: "10"
 
     - os: windows
-      language: generic
+      language: node_js
       node_js: "10"
 
 cache:

@@ -13,8 +13,8 @@
 		"url": "https://github.com/FrogTheFrog/steam-gyro-for-cemuhook"
 	},
 	"build": {
-		"appId": "FrogTheFrog.SteamGyroForCemuhook",
-		"productName": "steam-gyro-for-cemuhook",
+		"appId": "com.steam-gyro.app",
+		"productName": "steam-gyro",
 		"compression": "normal",
 		"directories": {
 			"output": "release"

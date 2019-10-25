@@ -27,7 +27,10 @@
 		},
 		"linux": {
 			"target": [
-				"AppImage"
+				"AppImage",
+				"snap",
+				"rpm",
+				"deb"
 			],
 			"icon": "./assets/icon.png",
 			"category": "Utility"

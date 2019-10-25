@@ -24,7 +24,7 @@ export class DataStreamService implements OnDestroy {
             (handler) => this.ipcReceiver.notifyOn("PUT", "data-stream", handler as any),
             (handler) => this.ipcReceiver.removeNotification("PUT", "data-stream", handler as any),
         ).pipe(
-            mergeMap(([v]) => new Promise((r) => { this.zone.run(() => r(v)); })),
+            mergeMap(([v]) => new Promise<object>((r) => { this.zone.run(() => r(v)); })),
             share(),
         );
     }

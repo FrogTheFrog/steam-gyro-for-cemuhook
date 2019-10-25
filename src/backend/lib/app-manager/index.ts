@@ -2,7 +2,7 @@ import { app } from "electron";
 import * as path from "path";
 import { Subscription } from "rxjs";
 import { createLogger, format, Logger, transports } from "winston";
-import { IpcEvents, MessageObject } from "../../../shared/models";
+import { IpcEvents, MessageObject, FilterData } from "../../../shared/models";
 import { IpcMain } from "../ipc-main";
 import { AppServer } from "./app-server";
 import { AppUserInterface } from "./app-user-interface";
@@ -228,7 +228,7 @@ export class AppManager {
             return this.settings.current.filter;
         }).on("PUT", "settings:filter", (data) => {
             this.settings.current.filter.type = data.type;
-            this.settings.current.filter.data[data.type] = data.value;
+            (this.settings.current.filter.data[data.type] as number[]) = data.value;
 
             this.server.controller.setFilter(data);
 

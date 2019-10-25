@@ -1,7 +1,7 @@
 import { crc32 } from "crc";
 import * as dgram from "dgram";
 import { AddressInfo } from "net";
-import * as randomJS from "random-js";
+import { uint32, MersenneTwister19937, Random } from "random-js";
 import { Subject, Subscription } from "rxjs";
 import { privateData } from "../../../shared/lib";
 import {
@@ -46,7 +46,7 @@ export class UdpServer {
     /**
      * Server ID to send to cemuhook.
      */
-    private serverId: number = randomJS().integer(0, 4294967296);
+    private serverId: number = new Random(MersenneTwister19937.autoSeed()).uint32();
 
     /**
      * Connected Dualshock controllers.
@@ -192,16 +192,16 @@ export class UdpServer {
             data[index++] = charCode("U");
             data[index++] = charCode("S");
 
-            data.writeUInt16LE(protocolVer, index, true);
+            data.writeUInt16LE(protocolVer, index);
             index += 2;
 
-            data.writeUInt16LE(data.length - 16, index, true);
+            data.writeUInt16LE(data.length - 16, index);
             index += 2;
 
-            data.writeUInt32LE(0, index, true);
+            data.writeUInt32LE(0, index);
             index += 4;
 
-            data.writeUInt32LE(this.serverId, index, true);
+            data.writeUInt32LE(this.serverId, index);
             index += 4;
 
             return index;
@@ -215,7 +215,7 @@ export class UdpServer {
      * @param data Data to generate crc32 with.
      */
     private finishPacket(data: Buffer) {
-        data.writeUInt32LE(crc32(data), 8, true);
+        data.writeUInt32LE(crc32(data), 8);
     }
 
     /**
@@ -297,8 +297,8 @@ export class UdpServer {
                 if (msgType === UdpServerMessage.DSUC_VersionReq) {
                     const outBuffer = Buffer.alloc(8);
 
-                    outBuffer.writeUInt32LE(UdpServerMessage.DSUS_VersionRsp, 0, true);
-                    outBuffer.writeUInt32LE(UdpServerDefaults.MaxProtocolVer, 4, true);
+                    outBuffer.writeUInt32LE(UdpServerMessage.DSUS_VersionRsp, 0);
+                    outBuffer.writeUInt32LE(UdpServerDefaults.MaxProtocolVer, 4);
                     this.sendPacket(clientEndpoint, outBuffer, 1001);
                 } else if (msgType === UdpServerMessage.DSUC_ListPorts) {
                     const numOfPadRequests = data.readInt32LE(index);
@@ -325,7 +325,7 @@ export class UdpServer {
 
                         const meta = controller ? controller.device.dualShockMeta : null;
                         if (meta !== null) {
-                            outBuffer.writeUInt32LE(UdpServerMessage.DSUS_PortInfo, 0, true);
+                            outBuffer.writeUInt32LE(UdpServerMessage.DSUS_PortInfo, 0);
                             let outIndex = 4;
 
                             outBuffer[outIndex++] = meta.padId;
@@ -388,7 +388,7 @@ export class UdpServer {
                     const report = data.report;
                     const outBuffer = Buffer.alloc(100);
                     let outIndex = this.beginPacket(outBuffer, 1001);
-                    outBuffer.writeUInt32LE(UdpServerMessage.DSUS_PadDataRsp, outIndex, true);
+                    outBuffer.writeUInt32LE(UdpServerMessage.DSUS_PadDataRsp, outIndex);
                     outIndex += 4;
 
                     outBuffer[outIndex++] = meta.padId;
@@ -404,7 +404,7 @@ export class UdpServer {
                     outBuffer[outIndex++] = meta.batteryStatus;
                     outBuffer[outIndex++] = meta.isActive ? 0x01 : 0x00;
 
-                    outBuffer.writeUInt32LE(report.packetCounter, outIndex, true);
+                    outBuffer.writeUInt32LE(report.packetCounter, outIndex);
                     outIndex += 4;
 
                     outBuffer[outIndex] = 0;
@@ -460,35 +460,35 @@ export class UdpServer {
 
                     outBuffer[outIndex++] = report.trackPad.first.isActive ? 0x01 : 0x00;
                     outBuffer[outIndex++] = report.trackPad.first.id;
-                    outBuffer.writeUInt16LE(report.trackPad.first.x, outIndex, true);
+                    outBuffer.writeUInt16LE(report.trackPad.first.x, outIndex);
                     outIndex += 2;
-                    outBuffer.writeUInt16LE(report.trackPad.first.y, outIndex, true);
+                    outBuffer.writeUInt16LE(report.trackPad.first.y, outIndex);
                     outIndex += 2;
 
                     outBuffer[outIndex++] = report.trackPad.second.isActive ? 0x01 : 0x00;
                     outBuffer[outIndex++] = report.trackPad.second.id;
-                    outBuffer.writeUInt16LE(report.trackPad.second.x, outIndex, true);
+                    outBuffer.writeUInt16LE(report.trackPad.second.x, outIndex);
                     outIndex += 2;
-                    outBuffer.writeUInt16LE(report.trackPad.second.y, outIndex, true);
+                    outBuffer.writeUInt16LE(report.trackPad.second.y, outIndex);
                     outIndex += 2;
 
-                    outBuffer.writeUInt32LE(report.motionTimestamp.low >>> 0, outIndex, true);
+                    outBuffer.writeUInt32LE(report.motionTimestamp.low >>> 0, outIndex);
                     outIndex += 4;
-                    outBuffer.writeUInt32LE(report.motionTimestamp.high >>> 0, outIndex, true);
-                    outIndex += 4;
-
-                    outBuffer.writeFloatLE(report.accelerometer.x, outIndex, true);
-                    outIndex += 4;
-                    outBuffer.writeFloatLE(report.accelerometer.y, outIndex, true);
-                    outIndex += 4;
-                    outBuffer.writeFloatLE(report.accelerometer.z, outIndex, true);
+                    outBuffer.writeUInt32LE(report.motionTimestamp.high >>> 0, outIndex);
                     outIndex += 4;
 
-                    outBuffer.writeFloatLE(report.gyro.x, outIndex, true);
+                    outBuffer.writeFloatLE(report.accelerometer.x, outIndex);
                     outIndex += 4;
-                    outBuffer.writeFloatLE(report.gyro.y, outIndex, true);
+                    outBuffer.writeFloatLE(report.accelerometer.y, outIndex);
                     outIndex += 4;
-                    outBuffer.writeFloatLE(report.gyro.z, outIndex, true);
+                    outBuffer.writeFloatLE(report.accelerometer.z, outIndex);
+                    outIndex += 4;
+
+                    outBuffer.writeFloatLE(report.gyro.x, outIndex);
+                    outIndex += 4;
+                    outBuffer.writeFloatLE(report.gyro.y, outIndex);
+                    outIndex += 4;
+                    outBuffer.writeFloatLE(report.gyro.z, outIndex);
                     outIndex += 4;
 
                     this.finishPacket(outBuffer);

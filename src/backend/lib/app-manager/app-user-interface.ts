@@ -3,8 +3,6 @@ import * as path from "path";
 import { BehaviorSubject } from "rxjs";
 import { filter, take } from "rxjs/operators";
 import * as url from "url";
-import { IpcEvents } from "../../../shared/models";
-import { IpcMain } from "../ipc-main";
 
 /**
  * App module responsible for UI resources.
@@ -33,7 +31,7 @@ export class AppUserInterface {
     /**
      * Indicated whether renderer has loaded or not.
      */
-    private loaded: BehaviorSubject<boolean> = new BehaviorSubject(false);
+    private loaded: BehaviorSubject<boolean> = new BehaviorSubject(false as boolean);
 
     /**
      * Specify if renderer is really closing.

@@ -472,9 +472,9 @@ export class UdpServer {
                     outBuffer.writeUInt16LE(report.trackPad.second.y, outIndex);
                     outIndex += 2;
 
-                    outBuffer.writeUInt32LE(report.motionTimestamp.low >>> 0, outIndex);
+                    outBuffer.writeUInt32LE(report.motionTimestamp.getLowBitsUnsigned(), outIndex);
                     outIndex += 4;
-                    outBuffer.writeUInt32LE(report.motionTimestamp.high >>> 0, outIndex);
+                    outBuffer.writeUInt32LE(report.motionTimestamp.getHighBitsUnsigned(), outIndex);
                     outIndex += 4;
 
                     outBuffer.writeFloatLE(report.accelerometer.x, outIndex);
@@ -507,6 +507,12 @@ export class UdpServer {
                 }
             }
         } catch (error) {
+            const stringifiedData = JSON.stringify(data, undefined, "    ");
+            if (error instanceof Error) {
+                error.message += ` (\n${stringifiedData}\n).`;
+            } else {
+                error += ` (\n${stringifiedData}\n).`;
+            }
             getInternals(this).errorSubject.next(error);
         }
     }

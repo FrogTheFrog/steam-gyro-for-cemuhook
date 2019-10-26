@@ -2,7 +2,7 @@ import { crc32 } from "crc";
 import * as dgram from "dgram";
 import { AddressInfo } from "net";
 import { MersenneTwister19937, Random } from "random-js";
-import { Subject, Subscription } from "rxjs";
+import { BehaviorSubject, Subject, Subscription } from "rxjs";
 import { privateData } from "../../../shared/lib";
 import {
     DualshockData,
@@ -17,7 +17,9 @@ import { ClientRequestTimes } from "./client-request-times";
  * Internal class data interface.
  */
 interface InternalData {
+    connectionStatus: BehaviorSubject<boolean>;
     errorSubject: Subject<Error>;
+    onMessageTimeout: NodeJS.Timer | null;
 }
 
 /**
@@ -63,7 +65,9 @@ export class UdpServer {
 
     constructor() {
         getInternals(this, {
+            connectionStatus: new BehaviorSubject<boolean>(false),
             errorSubject: new Subject(),
+            onMessageTimeout: null,
         });
     }
 
@@ -72,6 +76,13 @@ export class UdpServer {
      */
     public get onError() {
         return getInternals(this).errorSubject.asObservable();
+    }
+
+    /**
+     * Status change observable.
+     */
+    public get onStatusChange() {
+        return getInternals(this).connectionStatus.asObservable();
     }
 
     /**
@@ -177,6 +188,7 @@ export class UdpServer {
      */
     public clearClients() {
         this.clients.clear();
+        this.changeConnectionStatus(false);
     }
 
     /**
@@ -257,6 +269,8 @@ export class UdpServer {
                 data[2] === charCode("U") &&
                 data[3] === charCode("C")
             ) {
+                this.refreshStatus();
+                
                 let index = 4;
 
                 const protocolVer = data.readUInt16LE(index);
@@ -514,6 +528,36 @@ export class UdpServer {
                 error += ` (\n${stringifiedData}\n).`;
             }
             getInternals(this).errorSubject.next(error);
+        }
+    }
+
+    /**
+     * Status timeout used to detect lost UDP connection.
+     */
+    private refreshStatus(){
+        const internals = getInternals(this);
+
+        if (internals.onMessageTimeout !== null){
+            clearTimeout(internals.onMessageTimeout);
+            internals.onMessageTimeout = null;
+        }
+
+        this.changeConnectionStatus(true);
+        internals.onMessageTimeout = setTimeout(() => {
+            this.changeConnectionStatus(false);
+            internals.onMessageTimeout = null;
+        }, 1000);
+    }
+
+    /**
+     * Change status indicating whether a connection to UDP server is established.
+     * @param status New connection status.
+     */
+    private changeConnectionStatus(status: boolean){
+        const internals = getInternals(this);
+        if (status !== internals.connectionStatus.value)
+        {
+            internals.connectionStatus.next(status);
         }
     }
 

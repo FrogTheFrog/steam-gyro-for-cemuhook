@@ -259,6 +259,25 @@ export class AppManager {
     }
 
     /**
+     * Assign UDP related events.
+     */
+    private connectionStatusEvents() {
+        let subscription: Subscription = new Subscription();
+
+        this.ipc.receiver.on("POST", "connection-status", (streamStatus, response) => {
+            this.subscriptions.remove(subscription);
+            subscription.unsubscribe();
+            if (streamStatus) {
+                subscription = this.server.serverInstance.onStatusChange.subscribe((value) => {
+                    response.request("PUT", "connection-status", value)
+                        .catch((error) => this.emitError(error, { isFatal: true }));
+                });
+                this.subscriptions.add(subscription);
+            }
+        });
+    }
+
+    /**
      * Assign motion data related events.
      */
     private motionDataEvents() {
@@ -301,6 +320,7 @@ export class AppManager {
         this.filterEvents();
         this.motionDataEvents();
         this.deviceStatusEvents();
+        this.connectionStatusEvents();
         this.messageEvents();
     }
 }

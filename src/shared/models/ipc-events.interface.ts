@@ -19,11 +19,13 @@ export interface IpcEvents extends MethodicalEvents {
         "settings:filter": [void, TypedFilterData];
         "device-status": [boolean, void];
         "data-stream": [object, void];
+        "connection-status": [boolean, void];
     };
     POST: {
         "restart-server": [void, void];
         "device-status": [void, boolean];
         "data-stream": [void, boolean];
+        "connection-status": [void, boolean];
         "motion-data-stream": [[MotionDataWithTimestamp, void], [boolean, void]];
         "message": [[{ display: boolean, message: MessageObject }, void], [MessageObject, void]];
     };

@@ -37,6 +37,11 @@ export class AppComponent implements OnInit, OnDestroy {
     public deviceStatus: boolean = false;
 
     /**
+     * Specifies whether any UDP connection is established.
+     */
+    public connectionStatus: boolean = false;
+
+    /**
      * Stores various subscriptions for clean up.
      */
     private subscriptions!: Subscription;
@@ -64,6 +69,10 @@ export class AppComponent implements OnInit, OnDestroy {
             this.deviceStatus = status;
             this.changeRef.detectChanges();
         });
+        this.ipcReceiver.on("PUT", "connection-status", (status) => {
+            this.connectionStatus = status;
+            this.changeRef.detectChanges();
+        });
 
         this.subscriptions = merge(
             fromWindowEvent("maximize", this.ipc),
@@ -81,6 +90,7 @@ export class AppComponent implements OnInit, OnDestroy {
         }
 
         this.ipc.sender.request("POST", "device-status", true).catch(this.messageService.errorHandler);
+        this.ipc.sender.request("POST", "connection-status", true).catch(this.messageService.errorHandler);
     }
 
     /**
@@ -88,6 +98,9 @@ export class AppComponent implements OnInit, OnDestroy {
      */
     public ngOnDestroy() {
         this.ipc.sender.request("POST", "device-status", false).then(() => {
+            this.ipcReceiver.removeDataHandler(true);
+        });
+        this.ipc.sender.request("POST", "connection-status", false).then(() => {
             this.ipcReceiver.removeDataHandler(true);
         });
         this.subscriptions.unsubscribe();

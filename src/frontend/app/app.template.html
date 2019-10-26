@@ -12,8 +12,10 @@
         <span class="align-middle"> Message log</span>
     </a>
     <span class="fill-remaining-space"></span>
-    <mat-icon aria-hidden="true" class="no-select" style="margin-right: 0.5em;" [color]="deviceStatus ? 'accent' : 'warn'"
-        [matTooltip]="deviceStatus ? 'Connected' : 'Disconnected'" [svgIcon]="deviceStatus ? 'wifi' : 'wifi-off'"></mat-icon>
+    <mat-icon aria-hidden="true" class="no-select" style="margin-right: 0.5em;"
+        [color]="deviceStatus ? (connectionStatus ? 'accent' : 'primary') : 'warn'"
+        [matTooltip]="deviceStatus ? (connectionStatus ? 'Connected' : 'Device connected | No UDP connection') : 'Disconnected'"
+        [svgIcon]="deviceStatus ? 'wifi' : 'wifi-off'"></mat-icon>
     <button mat-button (click)="close()">Hide</button>
 </mat-toolbar>
 <router-outlet></router-outlet>

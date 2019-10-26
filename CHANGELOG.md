@@ -1,13 +1,18 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.3.3 - 2019-10-26
+
+### Added
+* Connection icon in the UI will now also indicate if UDP connection is established or not.
+
 ## 1.3.2 - 2019-10-25
 
 ### Fixed
 * #23 hopefully should be fixed now.
 
 ### Added
-* Linux support by @NickZ .
+* Linux support by @NickZ.
 * Automatic travis builds.
 
 ## 1.3.1 - 2019-02-08

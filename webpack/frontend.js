@@ -108,7 +108,6 @@ let clientConfig = {
         new AngularCompilerPlugin({
             tsConfigPath: path.resolve(__dirname, "..", "tsconfig.json"),
             entryModule: path.resolve(__dirname, "..", "src", "frontend", "app", "app.module#AppModule"),
-            skipCodeGeneration: process.env.NODE_ENV !== "production",
             sourceMap: process.env.NODE_ENV !== "production",
         })
     ]

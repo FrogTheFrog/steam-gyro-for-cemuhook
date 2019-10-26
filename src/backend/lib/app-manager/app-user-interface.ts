@@ -103,6 +103,7 @@ export class AppUserInterface {
                 backgroundColor: "#222",
                 frame: false,
                 height: 700,
+                icon: this.icon,
                 minHeight: 700,
                 minWidth: 1200,
                 show: false,

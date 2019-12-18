@@ -183,7 +183,9 @@ export class UdpServer {
     public removeController(controller?: GenericController<MotionDataWithTimestamp> | null) {
         if (!(controller instanceof GenericController)) {
             for (let i = 0; i < this.controllers.length; i++) {
-                this.removeController(this.controllers[i]!.device!);
+                if (this.controllers[i]!.device){
+                    this.removeController(this.controllers[i]!.device);
+                }
             }
         } else {
             this.controllers = this.controllers.filter(value => value === null || value!.device.path != controller.path);

@@ -48,7 +48,6 @@ export class AppServer {
                         break;
                     //new controller when first controller was disconnected
                     } else if (
-                        controller.isConnected &&
                         !this.activeController.isConnected &&
                         this.activeController.path != controller.path)
                     {

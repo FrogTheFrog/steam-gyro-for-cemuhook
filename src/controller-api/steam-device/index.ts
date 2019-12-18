@@ -105,7 +105,7 @@ export class SteamController extends GenericController<SteamDeviceReport> {
                         }
                     }));    
             } else { //failed to open
-                debug("boooo");
+                debug("Warning: Failed to open HID device");
             }
         }
         return this;

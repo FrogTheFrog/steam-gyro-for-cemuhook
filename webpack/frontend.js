@@ -115,7 +115,12 @@ let clientConfig = {
 
 let developmentConfig = {
     devtool: "source-map",
-    mode: "development"
+    mode: "development",
+    output: {
+        devtoolModuleFilenameTemplate: function (info) {
+            return "file:///" + encodeURI(info.absoluteResourcePath);
+        }
+    },
 };
 
 let productionConfig = {

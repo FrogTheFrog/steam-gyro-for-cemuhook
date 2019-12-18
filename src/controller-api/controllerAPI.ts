@@ -208,7 +208,9 @@ export class ControllerMaster {
         return devices;
     }
 
-    //adds and removes devices of one specified type
+    /**
+     * Adds and removes devices from item list of one specified type 
+     * */
     private setDevices (devices: HidDevice[], type: DeviceType){
         const addedItems = new Array<DeviceInfo>();
         const removedItems = new Array<DeviceInfo>();

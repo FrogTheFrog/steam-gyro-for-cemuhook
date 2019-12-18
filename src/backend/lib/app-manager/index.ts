@@ -38,7 +38,11 @@ export class AppManager {
                 server.start(settings.current.server).catch((error) => manager.emitError(error, { isFatal: true }));
             };
             const showRendererCallback = () => {
-                ui.show().catch((error) => manager.emitError(error, { isFatal: true }));
+                ui.show().catch((error) =>{
+                        console.log("error!");
+                        console.log(error);
+                        manager.emitError(error, { isFatal: true });
+                });
             };
 
             const ipc = new IpcMain<IpcEvents>();
@@ -210,8 +214,8 @@ export class AppManager {
         this.ipc.receiver.on("POST", "data-stream", (stream, response) => {
             this.subscriptions.remove(subscription);
             subscription.unsubscribe();
-            if (stream) {
-                subscription = this.server.activeController!.onReport.subscribe((data) => {
+            if (stream && this.server.activeController) {
+                subscription = this.server.activeController.onReport.subscribe((data) => {
                     response.request("PUT", "data-stream", data)
                         .catch((error) => this.emitError(error, { isFatal: true }));
                 });

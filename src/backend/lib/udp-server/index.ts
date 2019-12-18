@@ -5,13 +5,21 @@ import { MersenneTwister19937, Random } from "random-js";
 import { BehaviorSubject, Subject, Subscription } from "rxjs";
 import { privateData } from "../../../shared/lib";
 import {
-    DualshockData,
-    DualshockMeta,
-    GenericDualshockController,
     UdpServerDefaults,
     UdpServerMessage,
 } from "../../models";
 import { ClientRequestTimes } from "./client-request-times";
+
+import { 
+    ControllerMaster,
+    DualshockData,
+    DualshockMeta,
+    GenericController,
+    MotionData,
+    MotionDataWithTimestamp
+} from "../../../controller-api"
+import { MatButtonToggleGroupMultiple } from "@angular/material";
+
 
 /**
  * Internal class data interface.
@@ -50,11 +58,13 @@ export class UdpServer {
      */
     private serverId: number = new Random(MersenneTwister19937.autoSeed()).uint32();
 
+    private controllerMaster : ControllerMaster;
+    
     /**
      * Connected Dualshock controllers.
      */
     private controllers: Array<{
-        device: GenericDualshockController,
+        device: GenericController<MotionDataWithTimestamp>,
         subscription: Subscription,
     } | null> = new Array(4).fill(null);
 
@@ -63,7 +73,8 @@ export class UdpServer {
      */
     private clients = new Map<AddressInfo, ClientRequestTimes>();
 
-    constructor() {
+    constructor(controllerMaster: ControllerMaster) {
+        this.controllerMaster = controllerMaster;
         getInternals(this, {
             connectionStatus: new BehaviorSubject<boolean>(false),
             errorSubject: new Subject(),
@@ -143,7 +154,7 @@ export class UdpServer {
      * @param controller Controller to add.
      * @returns `false` if there are no more spots for controller.
      */
-    public addController(controller: GenericDualshockController) {
+    public addController(controller: GenericController<MotionDataWithTimestamp>) {
         const pd = getInternals(this);
 
         // tslint:disable-next-line:prefer-for-of
@@ -169,17 +180,13 @@ export class UdpServer {
      * Remove all controllers or only specified controller.
      * @param index Index of the controller to remove.
      */
-    public removeController(index?: number) {
-        if (index === undefined) {
+    public removeController(controller?: GenericController<MotionDataWithTimestamp> | null) {
+        if (!(controller instanceof GenericController)) {
             for (let i = 0; i < this.controllers.length; i++) {
-                this.removeController(i);
+                this.removeController(this.controllers[i]!.device!);
             }
-        }
-        else if (index > 0 && index < this.controllers.length) {
-            if (this.controllers[index] !== null) {
-                this.controllers[index]!.subscription.unsubscribe();
-                this.controllers[index] = null;
-            }
+        } else {
+            this.controllers = this.controllers.filter(value => value === null || value!.device.path != controller.path);
         }
     }
 

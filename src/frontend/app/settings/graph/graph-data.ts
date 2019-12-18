@@ -1,7 +1,6 @@
 import { NgZone } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
-import { Filter } from "../../../../shared/lib/filter";
-import { MotionDataWithTimestamp, PositionTriplet } from "../../../../shared/models";
+import { Filter, MotionDataWithTimestamp, PositionTriplet } from "../../../../controller-api";
 import { DataStreamObject, GraphDataItem, MotionDataGraphItem } from "../../models";
 
 export class GraphData {

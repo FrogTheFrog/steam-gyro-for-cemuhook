@@ -1,4 +1,4 @@
-import { AvailableFilters, availableFilters, FilterData } from "./filter.models";
+import { AvailableFilters, availableFilters, FilterData } from "../../controller-api";
 
 /**
  * Interface for user settings.

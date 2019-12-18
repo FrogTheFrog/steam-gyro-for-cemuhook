@@ -1,6 +1,7 @@
 import { Observable } from "rxjs";
-import { MotionDataWithQuaternion, MotionDataWithTimestamp } from "../../shared/models";
-import { DualshockMeta, DualshockReport } from "./dualshock.models";
+import { MotionDataWithQuaternion, MotionDataWithTimestamp } from "./motion-data.interface";
+import { DualshockMeta, DualshockReport } from "./dualshockdata.models";
+import { GenericDevice } from "./generic-controller.models";
 
 /**
  * Steam device's connection state.
@@ -17,7 +18,6 @@ export const enum SteamDeviceState {
 export interface SteamDeviceReport extends MotionDataWithQuaternion {
     packetCounter: number;
     battery: number;
-    timestamp: number;
     macAddress: string;
     state: SteamDeviceState;
     button: {
@@ -63,7 +63,7 @@ export interface SteamDeviceReport extends MotionDataWithQuaternion {
 /**
  * Abstract class wrapper for Steam devices.
  */
-export abstract class GenericSteamDevice {
+export abstract class GenericSteamDevice extends GenericDevice<SteamDeviceReport>{
     /**
      * Returns observable for new reports.
      */
@@ -87,12 +87,12 @@ export abstract class GenericSteamDevice {
     /**
      * Connects to available steam device.
      */
-    public abstract open(): this;
+    public abstract async open(): Promise<this>;
 
     /**
      * Closes open connection to steam device.
      */
-    public abstract close(): this;
+    public abstract async close(): Promise<this>;
 
     /**
      * Check if connection to steam device is open.

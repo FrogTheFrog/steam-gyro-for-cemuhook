@@ -3,7 +3,7 @@
  */
 export class HidFeatureArray {
     public dataLength: number = 0;
-    public data = Buffer.alloc(62, 0);
+    public data = new Buffer(62).fill(0);
 
     /**
      * @param featureId First leading byte in array.

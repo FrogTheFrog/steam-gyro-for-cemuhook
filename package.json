@@ -66,7 +66,8 @@
 	"dependencies": {
 		"microtime": "^3.0.0",
 		"node-hid": "^0.7.9",
-		"usb-detection": "^4.5.0"
+		"usb-detection": "^4.5.0",
+		"debug": "^4.1.1"
 	},
 	"devDependencies": {
 		"@angular/animations": "^8.2.12",

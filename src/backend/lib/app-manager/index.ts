@@ -211,7 +211,7 @@ export class AppManager {
             this.subscriptions.remove(subscription);
             subscription.unsubscribe();
             if (stream) {
-                subscription = this.server.controller.onReport.subscribe((data) => {
+                subscription = this.server.activeController!.onReport.subscribe((data) => {
                     response.request("PUT", "data-stream", data)
                         .catch((error) => this.emitError(error, { isFatal: true }));
                 });
@@ -230,7 +230,7 @@ export class AppManager {
             this.settings.current.filter.type = data.type;
             (this.settings.current.filter.data[data.type] as number[]) = data.value;
 
-            this.server.controller.setFilter(data);
+            this.server.activeController!.setFilter(data);
 
             this.settings.writeSettings(this.settingsPath)
                 .catch((error) => this.emitError(error, { isFatal: true }));
@@ -247,12 +247,12 @@ export class AppManager {
             this.subscriptions.remove(subscription);
             subscription.unsubscribe();
             if (streamStatus) {
-                subscription = this.server.controller.onOpenClose.subscribe((value) => {
+                subscription = this.server.activeController!.onOpenClose.subscribe((value) => {
                     response.request("PUT", "device-status", value)
                         .catch((error) => this.emitError(error, { isFatal: true }));
                 });
                 this.subscriptions.add(subscription);
-                response.request("PUT", "device-status", this.server.controller.isOpen())
+                response.request("PUT", "device-status", this.server.activeController!.isOpen())
                     .catch((error) => this.emitError(error, { isFatal: true }));
             }
         });
@@ -268,7 +268,7 @@ export class AppManager {
             this.subscriptions.remove(subscription);
             subscription.unsubscribe();
             if (streamStatus) {
-                subscription = this.server.serverInstance.onStatusChange.subscribe((value) => {
+                subscription = this.server.serverInstance!.onStatusChange.subscribe((value) => {
                     response.request("PUT", "connection-status", value)
                         .catch((error) => this.emitError(error, { isFatal: true }));
                 });
@@ -287,7 +287,7 @@ export class AppManager {
             this.subscriptions.remove(subscription);
             subscription.unsubscribe();
             if (stream) {
-                subscription = this.server.controller.onMotionsData.subscribe((data) => {
+                subscription = this.server.activeController!.onMotionsData.subscribe((data) => {
                     response.request("POST", "motion-data-stream", data)
                         .catch((error) => this.emitError(error, { isFatal: true }));
                 });

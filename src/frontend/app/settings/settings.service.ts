@@ -1,6 +1,7 @@
 import { Injectable, NgZone } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
-import { TypedFilterData, UserSettings } from "../../../shared/models";
+import { TypedFilterData }from "../../../controller-api"
+import { UserSettings } from "../../../shared/models";
 import { MessageLogService } from "../message-log/message-log.service";
 import { IpcService } from "../shared/services/ipc.service";
 import { GraphData } from "./graph/graph-data";

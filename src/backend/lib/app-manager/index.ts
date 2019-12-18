@@ -7,6 +7,7 @@ import { IpcMain } from "../ipc-main";
 import { AppServer } from "./app-server";
 import { AppUserInterface } from "./app-user-interface";
 import { AppUserSettings } from "./app-user-settings";
+import { debug } from "debug"
 
 /**
  * Module responsible for handling main app logic.
@@ -39,8 +40,8 @@ export class AppManager {
             };
             const showRendererCallback = () => {
                 ui.show().catch((error) =>{
-                        console.log("error!");
-                        console.log(error);
+                        debug("error!");
+                        debug(error);
                         manager.emitError(error, { isFatal: true });
                 });
             };

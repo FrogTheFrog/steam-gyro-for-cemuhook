@@ -1,23 +1,26 @@
 import * as long from "long";
 import * as microtime from "microtime";
-import { Device as HidDevice, devices as hidDevices, HID } from "node-hid";
+import { Device as HidDevice, devices as hidDevices, HID, Device } from "node-hid";
 import { Subject } from "rxjs";
-import { privateData } from "../../../shared/lib";
-import { MotionData, MotionDataWithTimestamp } from "../../../shared/models";
+import { privateData } from "../lib";
+import { MotionData, MotionDataWithTimestamp } from "../models";
 import {
+    DeviceInfo,
+    DeviceType,
     DualshockBattery,
     DualshockConnection,
     DualshockMeta,
     DualshockModel,
     DualshockReport,
     DualshockState,
+    GenericDevice,
     GenericSteamDevice,
     SteamDeviceRatios,
     SteamDeviceReport,
     SteamDeviceScales,
     SteamDeviceState,
     SteamHidId,
-} from "../../models";
+} from "../models";
 import { emptySteamDeviceReport } from "./empty-report";
 import { HidFeatureArray } from "./hid-feature-array";
 
@@ -43,21 +46,6 @@ const enum HidEvent {
 }
 
 /**
- * Possible HID device types.
- */
-type DeviceType = "dongle" | "wired";
-
-/**
- * Interface for storing HID devices.
- */
-interface Item {
-    info: HidDevice;
-    type: DeviceType;
-    active: boolean;
-    device: SteamHidDevice | null;
-}
-
-/**
  * Internal class data interface.
  */
 interface InternalData {
@@ -68,11 +56,6 @@ interface InternalData {
 }
 
 /**
- * Event handler for list change events.
- */
-const listChangeSubject = new Subject<void>();
-
-/**
  * Private data getter.
  */
 const getInternals = privateData() as (self: SteamHidDevice, init: InternalData | void) => InternalData;
@@ -81,220 +64,6 @@ const getInternals = privateData() as (self: SteamHidDevice, init: InternalData 
  * Class for handling HID based steam devices.
  */
 export class SteamHidDevice extends GenericSteamDevice {
-    /**
-     * Returns list change event observable.
-     */
-    static get onListChange() {
-        return listChangeSubject.asObservable();
-    }
-
-    /**
-     * Starts monitoring for new HID devices.
-     */
-    public static startMonitoring() {
-        if (this.motoringCallCount++ === 0) {
-            this.updateDeviceList(0, "wired", "dongle");
-
-            // Dongle devices can be connected using usb events
-            usbDetect.on(
-                `change:${SteamHidId.Vendor}:${SteamHidId.DongleProduct}`,
-                () => this.updateDeviceList(1000, "dongle"),
-            );
-            usbDetect.on(
-                `change:${SteamHidId.Vendor}:${SteamHidId.WiredProduct}`,
-                () => this.updateDeviceList(1000, "wired"),
-            );
-        }
-    }
-
-    /**
-     * Stops monitoring for new HID devices.
-     */
-    public static stopMonitoring() {
-        if (--this.motoringCallCount === 0) {
-            usbDetect.stopMonitoring();
-        }
-    }
-
-    /**
-     * Enumerate currently available devices.
-     * @param activeOnly Exclude inactive devices.
-     * @returns Array of device system paths.
-     */
-    public static enumerateDevices(activeOnly: boolean = false) {
-        const devices: string[] = [];
-
-        if (activeOnly) {
-            this.updateDongleStatus();
-        }
-
-        for (const [path, item] of this.itemList) {
-            if (item.device === null) {
-                if ((activeOnly && item.active) || !activeOnly) {
-                    devices.push(path);
-                }
-            }
-        }
-
-        return devices;
-    }
-
-    /**
-     * Stored item list.
-     */
-    private static itemList = new Map<string, Item>();
-
-    /**
-     * Stored device array.
-     */
-    private static deviceList: HidDevice[] | null = null;
-
-    /**
-     * Call count tracker to prevent running multiple trackers.
-     */
-    private static motoringCallCount: number = 0;
-
-    /**
-     * Update device list.
-     * @param delay Delay interval before updating.
-     * @param types Types to be include in updated list.
-     */
-    private static updateDeviceList(delay: number, ...types: DeviceType[]) {
-        const refresh = () => {
-            this.deviceList = hidDevices();
-            this.refreshItemList(...types);
-        };
-
-        if (delay > 0) {
-            setTimeout(refresh, delay);
-        } else {
-            refresh();
-        }
-    }
-
-    /**
-     * Shorthand function for filtering and sorting device array.
-     * @param options Options for this method.
-     * @return Device array after filtering and sorting.
-     */
-    private static getDevices(options?: {
-        devices?: HidDevice[],
-        filter?: (device: HidDevice) => boolean,
-        sort?: (a: HidDevice, b: HidDevice) => number,
-    }) {
-        let { devices = this.deviceList || [] } = options || {};
-
-        if (options) {
-            if (devices.length > 0 && options.filter) {
-                devices = devices.filter(options.filter);
-            }
-
-            if (devices.length > 0 && options.sort) {
-                devices = devices.sort(options.sort);
-            }
-        }
-
-        return devices;
-    }
-
-    /**
-     * Refresh item list.
-     * @param types Types to keep in refreshed list.
-     */
-    private static refreshItemList(...types: DeviceType[]) {
-        const allDevices = this.getDevices();
-        let listChanged = false;
-
-        const filterDevices = (devices: HidDevice[], type: DeviceType) => {
-            for (const device of devices) {
-                if (device.path) {
-                    if (!this.itemList.has(device.path)) {
-                        this.itemList.set(device.path, {
-                            active: type !== "dongle",
-                            device: null,
-                            info: device,
-                            type,
-                        });
-                        listChanged = true;
-                    }
-                }
-            }
-
-            for (const [path, item] of this.itemList) {
-                if (item.type === type) {
-                    const hasDevice = devices.findIndex((device) => device.path === path) !== -1;
-                    if (!hasDevice) {
-                        if (item.device) {
-                            item.device.close();
-                        }
-                        this.itemList.delete(path);
-                        listChanged = true;
-                    }
-                }
-            }
-
-            return listChanged;
-        };
-
-        for (const type of types) {
-            let devices: HidDevice[] | null = null;
-            switch (type) {
-                case "dongle":
-                    devices = this.getDevices({
-                        devices: allDevices,
-                        filter: (device) => {
-                            return device.productId === SteamHidId.DongleProduct &&
-                                device.vendorId === SteamHidId.Vendor &&
-                                device.interface > 0 && device.interface < 5;
-                        },
-                        sort: (a, b) => {
-                            return a.interface > b.interface ? 1 : 0;
-                        },
-                    });
-                    break;
-                case "wired":
-                    devices = this.getDevices({
-                        devices: allDevices,
-                        filter: (device) => {
-                            return device.productId === SteamHidId.WiredProduct &&
-                                device.vendorId === SteamHidId.Vendor &&
-                                device.interface > 0 && device.interface < 5;
-                        },
-                        sort: (a, b) => {
-                            return a.interface > b.interface ? 1 : 0;
-                        },
-                    });
-                    break;
-            }
-            if (devices !== null) {
-                filterDevices(devices, type);
-                if (type === "dongle") {
-                    this.updateDongleStatus();
-                }
-            }
-        }
-
-        if (listChanged) {
-            listChangeSubject.next();
-        }
-    }
-
-    private static updateDongleStatus() {
-        const wirelessStateCheck = new HidFeatureArray(0xB4).array;
-
-        for (const [path, item] of this.itemList) {
-            try {
-                if (item.type === "dongle") {
-                    const device = (item.device !== null ? item.device.hidDevice : null) || new HID(path);
-                    device.sendFeatureReport(wirelessStateCheck);
-
-                    const data = device.getFeatureReport(wirelessStateCheck[0], wirelessStateCheck.length);
-                    item.active = data[2] > 0 && data[3] === 2;
-                }
-                // tslint:disable-next-line:no-empty
-            } catch (everything) { } // In case HID devices are disconnected
-        }
-    }
 
     /**
      * Current steam device report.
@@ -332,18 +101,22 @@ export class SteamHidDevice extends GenericSteamDevice {
     private lastValidSensorPacket: number = 0;
 
     /**
-     * Current HID device.
+     * Current HID handle.
      */
-    private hidDevice: HID | null = null;
+    public hidHandle: HID | null = null;
 
-    constructor() {
+    public deviceInfo: DeviceInfo;
+
+    constructor(deviceInfo: DeviceInfo) {
         super();
+        this.deviceInfo = deviceInfo;
         getInternals(this, {
             errorSubject: new Subject(),
             motionDataSubject: new Subject(),
             openCloseSubject: new Subject(),
             reportSubject: new Subject(),
         });
+        
     }
 
     public get onReport() {
@@ -369,68 +142,61 @@ export class SteamHidDevice extends GenericSteamDevice {
     public get motionData() {
         return this.currentMotionData;
     }
+    
+    public get deviceType() {
+        return "Steam-HID"
+    }
 
-    public open() {
-        this.close();
-
-        const devices = SteamHidDevice.enumerateDevices(true);
-        if (devices.length > 0) {
-            const pd = getInternals(this);
-            const devicePath = devices[0];
-            if (SteamHidDevice.itemList.has(devicePath)) {
-                const item = SteamHidDevice.itemList.get(devicePath) as Item;
-                if (item.device === null) {
-                    this.hidDevice = new HID(devicePath);
-                    
-                    this.hidDevice.on("data", (data: Buffer) => {
-                        if (this.parseRawData(data)) {
-                            pd.reportSubject.next(this.currentReport);
-                            pd.motionDataSubject.next(this.motionData);
-                        }
-                    });
-                    this.hidDevice.on("closed", () => this.close());
-                    this.hidDevice.on("error", (error: Error) => {
-                        if (error.message === "could not read from HID device") {
-                            this.close();
-                        } else {
-                            pd.errorSubject.next(error);
-                        }
-                    });
-
-                    item.device = this;
-                    this.connectionTimestamp = microtime.now();
-                    pd.openCloseSubject.next(true);
-                }
-            }
+    public async open() {
+        const pd = {
+            errorSubject: getInternals(this).errorSubject,
+            reportSubject: getInternals(this).reportSubject,
+            motionDataSubject: getInternals(this).motionDataSubject,
+            openCloseSubject: getInternals(this).openCloseSubject
         }
+
+        await this.close();
+        this.hidHandle = new HID(this.deviceInfo.path);
+
+        this.hidHandle.on("data", (data: Buffer) => {
+            if (this.parseRawData(data)) {
+                getInternals(this).reportSubject.next(this.currentReport);
+                getInternals(this).motionDataSubject.next(this.motionData);
+            }
+        });
+        this.hidHandle.on("closed", () => this.close());
+        this.hidHandle.on("error", (error: Error) => {
+            if (error.message === "could not read from HID device") {
+                this.close();
+            } else {
+                pd.errorSubject.next(error);
+            }
+        });
+
+        this.connectionTimestamp = microtime.now();
+        pd.openCloseSubject.next(true);
 
         return this;
     }
 
-    public close() {
+    public async close() {
         if (this.isOpen()) {
-            this.hidDevice!.close();
-            this.hidDevice = null;
-            for (const [path, item] of SteamHidDevice.itemList) {
-                if (item.device === this) {
-                    item.device = null;
-                    break;
-                }
-            }
-
+            this.hidHandle!.close();
+            this.hidHandle = null;
             getInternals(this).openCloseSubject.next(false);
         }
         return this;
     }
 
     public isOpen() {
-        return this.hidDevice !== null;
+        return this.hidHandle !== null;
     }
 
     public reportToDualshockReport(report: SteamDeviceReport): DualshockReport {
         // tslint:disable:object-literal-sort-keys
         return {
             packetCounter: report.packetCounter,
+            timestamp: report.timestamp,
             motionTimestamp: long.fromNumber(report.timestamp, true),
             button: {
                 R1: report.button.RS,
@@ -713,7 +479,7 @@ export class SteamHidDevice extends GenericSteamDevice {
                 const quaternion = 0x04;
                 const featureArray = new HidFeatureArray();
                 featureArray.appendUint16(0x30, gyro | accelerometer | quaternion);
-                this.hidDevice!.sendFeatureReport(featureArray.array);
+                this.hidHandle!.sendFeatureReport(featureArray.array);
                 // tslint:disable-next-line:no-empty
             } catch (everything) { }
         }

@@ -32,7 +32,7 @@ export interface MotionDataWithTimestamp extends MotionData {
 /**
  * Motion data with quaternion.
  */
-export interface MotionDataWithQuaternion extends MotionData {
+export interface MotionDataWithQuaternion extends MotionDataWithTimestamp {
     quaternion: PositionTripletWithRange & {
         w: number,
     };

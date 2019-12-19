@@ -1,4 +1,4 @@
-import { SteamDeviceReport, SteamDeviceScales, SteamDeviceState } from "../../models";
+import { SteamDeviceReport, SteamDeviceScales, SteamDeviceState } from "../models";
 
 // tslint:disable-next-line:no-var-requires
 const randomMac = require("random-mac");

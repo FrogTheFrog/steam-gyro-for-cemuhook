@@ -1,7 +1,6 @@
-import { TypedFilterData } from "./filter.models";
+import { TypedFilterData, MotionDataWithTimestamp } from "../../controller-api";
 import { MethodicalEvents } from "./ipc.models";
 import { MessageObject } from "./message.models";
-import { MotionDataWithTimestamp } from "./motion-data.interface";
 import { UserSettings } from "./user-settings.models";
 
 /**

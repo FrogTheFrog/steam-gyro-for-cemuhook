@@ -11,7 +11,7 @@ import {
 } from "@angular/forms";
 import { combineLatest, Subscription } from "rxjs";
 import { debounceTime, distinctUntilChanged, filter, map, share, tap } from "rxjs/operators";
-import { AvailableFilters, FilterData, TypedFilterData } from "../../../../controller-api";
+import { AvailableFilters, FilterData, TypedFilterData } from "../../../../controller-api/models/filter.models";
 import { MessageLogService } from "../../message-log/message-log.service";
 import { SettingsService } from "../settings.service";
 

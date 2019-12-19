@@ -247,18 +247,46 @@ export class AppManager {
      */
     private deviceStatusEvents() {
         let subscription: Subscription = new Subscription();
+        let serverSubscription = new Subscription();
 
         this.ipc.receiver.on("POST", "device-status", (streamStatus, response) => {
             this.subscriptions.remove(subscription);
             subscription.unsubscribe();
+            this.subscriptions.remove(serverSubscription)
+            serverSubscription.unsubscribe();
             if (streamStatus) {
-                subscription = this.server.activeController!.onOpenClose.subscribe((value) => {
-                    response.request("PUT", "device-status", value)
+                serverSubscription = this.server.onAddedController.subscribe((added)=>{
+                    this.subscriptions.remove(subscription);
+                    subscription.unsubscribe();
+                    // If we've added a new controller
+                    if (added){
+                        subscription = this.server.activeController!.onOpenClose.subscribe((value) => {
+                            response.request("PUT", "device-status", value)
+                                .catch((error) => this.emitError(error, { isFatal: true }));
+                        });    
+                        this.subscriptions.add(subscription);
+                    } else { // If we've removed a controller
+                        response.request("PUT", "device-status", false)
                         .catch((error) => this.emitError(error, { isFatal: true }));
-                });
-                this.subscriptions.add(subscription);
-                response.request("PUT", "device-status", this.server.activeController!.isOpen())
+                    }
+                })
+
+                this.subscriptions.add(serverSubscription);
+
+                if (this.server.activeController){
+                    this.subscriptions.remove(subscription);
+                    subscription.unsubscribe();
+                    subscription = this.server.activeController!.onOpenClose.subscribe((value) => {
+                        response.request("PUT", "device-status", value)
+                            .catch((error) => this.emitError(error, { isFatal: true }));
+                    });    
+                    this.subscriptions.add(subscription);
+                    response.request("PUT", "device-status", this.server.activeController!.isOpen())
                     .catch((error) => this.emitError(error, { isFatal: true }));
+                } else {
+                    response.request("PUT", "device-status", false)
+                    .catch((error) => this.emitError(error, { isFatal: true }));
+                }
             }
         });
     }
@@ -279,6 +307,7 @@ export class AppManager {
                 });
                 this.subscriptions.add(subscription);
             }
+            
         });
     }
 
@@ -287,16 +316,41 @@ export class AppManager {
      */
     private motionDataEvents() {
         let subscription: Subscription = new Subscription();
-
+        let serverSubscription: Subscription = new Subscription();
         this.ipc.receiver.on("POST", "motion-data-stream", (stream, response) => {
             this.subscriptions.remove(subscription);
             subscription.unsubscribe();
+            this.subscriptions.remove(serverSubscription);
+            serverSubscription.unsubscribe();
+            console.log("Received request for motion data stream!");
             if (stream) {
-                subscription = this.server.activeController!.onMotionsData.subscribe((data) => {
-                    response.request("POST", "motion-data-stream", data)
-                        .catch((error) => this.emitError(error, { isFatal: true }));
-                });
-                this.subscriptions.add(subscription);
+                serverSubscription = this.server.onAddedController.subscribe((added)=>{
+                    this.subscriptions.remove(subscription);
+                    subscription.unsubscribe();
+                    // If we've added a new controller
+                    if (added){
+                        subscription = this.server.activeController!.onMotionsData.subscribe((value) => {
+                            console.log("Posting motion data!")
+                            response.request("POST", "motion-data-stream", value)
+                                .catch((error) => this.emitError(error, { isFatal: true }));
+                        });    
+                        this.subscriptions.add(subscription);
+                    }
+                })
+
+                this.subscriptions.add(serverSubscription);
+
+                if (this.server.activeController){
+                    this.subscriptions.remove(subscription);
+                    subscription.unsubscribe();
+                    subscription = this.server.activeController.onMotionsData.subscribe((value) => {
+                        console.log("Posting motion data!")
+                        response.request("POST", "motion-data-stream", value)
+                            .catch((error) => this.emitError(error, { isFatal: true }));
+                    });    
+                    this.subscriptions.add(subscription);
+
+                }
             }
         });
     }

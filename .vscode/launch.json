@@ -30,11 +30,28 @@
             ]
         },
         {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Electron: chrome renderer",
+            "userDataDir": "${workspaceRoot}/.chrome",
+            "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron",
+            "runtimeArgs": [
+                "--remote-debugging-port=9222",
+                "${workspaceRoot}/dist/main.bundle.js"
+            ],
+            "windows": {
+                "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron.cmd"
+            },
+            "webRoot": "${workspaceRoot}/src",
+            "timeout": 30000
+        },
+        {
             "name": "Electron: Renderer",
             "type": "chrome",
             "request": "attach",
             "trace": true,
             "port": 9223,
+            "sourceMaps": true,
             "webRoot": "${workspaceRoot}/src",
             "timeout": 30000
         },

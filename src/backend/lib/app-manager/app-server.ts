@@ -6,6 +6,21 @@ import {
     GenericController, 
     MotionDataWithTimestamp 
 } from "../../../controller-api";
+import { Subject } from "rxjs";
+import { privateData } from "../../../shared/lib";
+
+
+/**
+ * Internal class data interface.
+ */
+interface InternalData {
+    addedControllerSubject: Subject<boolean>;
+}
+
+/**
+ * Private data getter.
+ */
+const getInternals = privateData() as (self: AppServer, init: InternalData | void) => InternalData;
 
 /**
  * App module responsible for server and controller logic.
@@ -29,6 +44,9 @@ export class AppServer {
     constructor(private ui: AppUserInterface) {
         this.activeController = null;
         this.serverInstance = new UdpServer(this.controllerMaster);
+        getInternals(this, {
+            addedControllerSubject: new Subject<boolean>()
+        });
     }
 
     /**
@@ -45,6 +63,7 @@ export class AppServer {
                     if ( this.activeController == null ){
                         this.activeController = controller;
                         this.serverInstance.addController(controller);
+                        getInternals(this).addedControllerSubject.next(true);
                         break;
                     //new controller when first controller was disconnected
                     } else if (
@@ -53,17 +72,24 @@ export class AppServer {
                     {
                         this.serverInstance.removeController(controller);
                         this.activeController = controller;
+                        getInternals(this).addedControllerSubject.next(true);
                         break;
                     }
                 }
             }
+            // Removed controller
             for (const controller of removedControllers){
                 if (this.activeController!.path == controller.path){
                     this.serverInstance.removeController(controller);
+                    getInternals(this).addedControllerSubject.next(false);
                 }
             }
         })
         this.ui.tray.setToolTip(`Server@${settings.address}:${settings.port}`);
+    }
+
+    public get onAddedController() {
+        return getInternals(this).addedControllerSubject.asObservable();
     }
 
     /**

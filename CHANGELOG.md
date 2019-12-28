@@ -1,6 +1,17 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.3.4 - 2019-12-28
+
+### Fixed
+* Fixed #30 and #31.
+
+### Changed
+* Configs for non-windows users will now be saved in "steam-gyro-for-cemuhook" instead of "steam-gyro" to reduce clutter. 
+
+### Added
+* HID devices (currently the only ones that are supported, but whatever) will now be handled more gracefully - less errors and snapier device switching.
+
 ## 1.3.3 - 2019-10-26
 
 ### Added

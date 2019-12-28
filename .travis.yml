@@ -2,11 +2,11 @@ matrix:
   include:
     - os: linux
       language: node_js
-      node_js: "10"
+      node_js: "13"
 
     - os: windows
       language: node_js
-      node_js: "10"
+      node_js: "13"
 
 cache:
   directories:

@@ -55,9 +55,9 @@ export class AppUserInterface {
     ) {
         let iconpath: string;
         if (process.platform === "win32"){
-            iconpath = path.join(__dirname, require("../../../../assets/icon.ico"));
+            iconpath = path.join(__dirname, require("../../../../assets/icon.ico").default);
         } else { // linux, macos, etc.
-            iconpath = path.join(__dirname, require("../../../../assets/icon.png"));
+            iconpath = path.join(__dirname, require("../../../../assets/icon.png").default);
         }
         this.icon = nativeImage.createFromPath(iconpath);
         if (!this.icon){

@@ -45,6 +45,7 @@ export enum StatusFlag {
     RESPONSE,
     RESPONSE_OK,
     EXCEPTION,
+    NOTIFICATION,
 }
 
 /**
@@ -146,6 +147,7 @@ export type ReceiverCallback<O extends MethodicalEvents, M extends AllMethods, E
         data: ExtractReceiverValue<O, M, E>,
         sender: IpcSender<O, SenderFunction<any>>,
         remove: ListenerRemoveCallback,
+        isNotification: boolean,
     ) => Promise<ExtractReceiverResponseValue<O, M, E>> | ExtractReceiverResponseValue<O, M, E>;
 
 /**

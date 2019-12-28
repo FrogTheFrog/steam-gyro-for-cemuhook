@@ -91,6 +91,26 @@ export class IpcSender<O extends MethodicalEvents, S extends SendMethod> {
     }
 
     /**
+     * Sends a one-way notification to listener.
+     * @param method Method to notify by.
+     * @param event Event to request by.
+     * @param callback Data to send.
+     * @param webContentsId Optional id to be used as a target.
+     */
+    public notify<M extends Methods, E extends Events<O, M>>(
+        method: M,
+        event: E,
+        data: SenderValue<O, M, E>,
+        webContentsId?: number,
+    ) {
+        const pd = getInternals(this);
+        const channel = pd.shared.generateChannel(method, event);
+        const send = generateSendFn<O, M, E>(pd.sendMethod, webContentsId);
+
+        send(channel, [StatusFlag.NOTIFICATION, 0, data]);
+    }
+
+    /**
      * Initiates request to listener.
      * @param method Method to request by.
      * @param event Event to request by.

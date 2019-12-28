@@ -2,6 +2,7 @@ import * as long from "long";
 import * as microtime from "microtime";
 import { Device as HidDevice, devices as hidDevices, HID } from "node-hid";
 import { Subject } from "rxjs";
+import * as usbDetect from "usb-detection";
 import { privateData } from "../../../shared/lib";
 import { MotionData, MotionDataWithTimestamp } from "../../../shared/models";
 import {
@@ -20,9 +21,6 @@ import {
 } from "../../models";
 import { emptySteamDeviceReport } from "./empty-report";
 import { HidFeatureArray } from "./hid-feature-array";
-
-// tslint:disable-next-line:no-var-requires
-const usbDetect = require("usb-detection");
 
 /**
  * Shorthand function for converting number to boolean.
@@ -82,9 +80,14 @@ const getInternals = privateData() as (self: SteamHidDevice, init: InternalData 
  */
 export class SteamHidDevice extends GenericSteamDevice {
     /**
+     * Array containing all supported device types.
+     */
+    public static allTypes: DeviceType[] = ["wired", "dongle"];
+
+    /**
      * Returns list change event observable.
      */
-    static get onListChange() {
+    public static get onListChange() {
         return listChangeSubject.asObservable();
     }
 
@@ -93,7 +96,7 @@ export class SteamHidDevice extends GenericSteamDevice {
      */
     public static startMonitoring() {
         if (this.motoringCallCount++ === 0) {
-            this.updateDeviceList(0, "wired", "dongle");
+            this.updateDeviceList(0, ...this.allTypes);
 
             // Dongle devices can be connected using usb events
             usbDetect.on(
@@ -104,6 +107,8 @@ export class SteamHidDevice extends GenericSteamDevice {
                 `change:${SteamHidId.Vendor}:${SteamHidId.WiredProduct}`,
                 () => this.updateDeviceList(1000, "wired"),
             );
+
+            usbDetect.startMonitoring();
         }
     }
 
@@ -205,6 +210,12 @@ export class SteamHidDevice extends GenericSteamDevice {
         const allDevices = this.getDevices();
         let listChanged = false;
 
+        const checkUsagePage = (value?: number) => {
+            // Windows likes to provide non-existing device handles that needs to be filtered out
+            // by UsagePage property.
+            return process.platform === "win32" ? value === 0xFF00 : true;
+        };
+
         const filterDevices = (devices: HidDevice[], type: DeviceType) => {
             for (const device of devices) {
                 if (device.path) {
@@ -245,7 +256,8 @@ export class SteamHidDevice extends GenericSteamDevice {
                         filter: (device) => {
                             return device.productId === SteamHidId.DongleProduct &&
                                 device.vendorId === SteamHidId.Vendor &&
-                                device.interface > 0 && device.interface < 5;
+                                device.interface > 0 && device.interface < 5 &&
+                                checkUsagePage(device.usagePage);
                         },
                         sort: (a, b) => {
                             return a.interface > b.interface ? 1 : 0;
@@ -258,7 +270,8 @@ export class SteamHidDevice extends GenericSteamDevice {
                         filter: (device) => {
                             return device.productId === SteamHidId.WiredProduct &&
                                 device.vendorId === SteamHidId.Vendor &&
-                                device.interface > 0 && device.interface < 5;
+                                device.interface > 0 && device.interface < 5 &&
+                                checkUsagePage(device.usagePage);
                         },
                         sort: (a, b) => {
                             return a.interface > b.interface ? 1 : 0;
@@ -381,14 +394,13 @@ export class SteamHidDevice extends GenericSteamDevice {
                 const item = SteamHidDevice.itemList.get(devicePath) as Item;
                 if (item.device === null) {
                     this.hidDevice = new HID(devicePath);
-                    
+
                     this.hidDevice.on("data", (data: Buffer) => {
                         if (this.parseRawData(data)) {
                             pd.reportSubject.next(this.currentReport);
                             pd.motionDataSubject.next(this.motionData);
                         }
                     });
-                    this.hidDevice.on("closed", () => this.close());
                     this.hidDevice.on("error", (error: Error) => {
                         if (error.message === "could not read from HID device") {
                             this.close();

@@ -69,7 +69,7 @@ export class MessageLogService implements OnDestroy {
             type: "error",
         };
         this.addToList(data);
-        this.ipc.sender.request("POST", "message", data).then();
+        this.ipc.sender.notify("POST", "message", data);
         return data;
     }
 

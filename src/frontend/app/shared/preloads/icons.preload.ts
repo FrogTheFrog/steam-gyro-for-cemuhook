@@ -17,7 +17,7 @@ export function requireFiles<T extends string>(directory: string, extension: str
     }
 
     for (const name of filename) {
-        map.push(`"${name}": require("${directory}${name}${extension}")`);
+        map.push(`"${name}": require("${directory}${name}${extension}").default`);
     }
 
     return `module.exports = {${map.join(", ")}};` as unknown as {

@@ -167,7 +167,7 @@ export class SteamDevice extends GenericSteamDevice {
             }
     
             if (this.watcher.isWatching && !this.isOpen() && !this.open().isOpen()) {
-                this.watcher.timer = global.setTimeout(() => this.watcherCallback(), 1000);
+                this.watcher.timer = setTimeout(() => this.watcherCallback(), 1000);
             }
         } catch (error) {
             getInternals(this).errorSubject.next(error);

@@ -33,23 +33,22 @@ export class DataStreamService implements OnDestroy {
      * Starts data stream.
      */
     public start() {
-        return this.ipc.sender.request("POST", "data-stream", true).catch(this.messageService.errorHandler);
+        return this.ipc.sender.notify("POST", "data-stream", true);
     }
 
     /**
      * Stops data stream.
      */
     public stop() {
-        return this.ipc.sender.request("POST", "data-stream", false).catch(this.messageService.errorHandler);
+        return this.ipc.sender.notify("POST", "data-stream", false);
     }
 
     /**
      * Cleanup.
      */
     public ngOnDestroy() {
-        this.stop().then(() => {
-            this.ipcReceiver.removeDataHandler(true);
-            this.ipcReceiver.removeNotification(true);
-        });
+        this.stop();
+        this.ipcReceiver.removeDataHandler(true);
+        this.ipcReceiver.removeNotification(true);
     }
 }

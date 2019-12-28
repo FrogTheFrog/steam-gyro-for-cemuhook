@@ -112,7 +112,7 @@ export class IpcReceiver<O extends MethodicalEvents> {
      * Add received data handler.
      * @param method Method to handle.
      * @param event Event to handle.
-     * @param callback Callback respond with.
+     * @param callback Callback respond with. If a notification was received, user data will not be send as a response.
      * @param options Custom data handler options.
      */
     public on<M extends Methods, E extends Events<O, M>>(
@@ -172,7 +172,7 @@ export class IpcReceiver<O extends MethodicalEvents> {
 
                         send(channel, [StatusFlag.REQUEST_OK, tId]);
 
-                        Promise.resolve(callback(tData as ReceiverValue<O, M, E>, sender, remove))
+                        Promise.resolve(callback(tData as ReceiverValue<O, M, E>, sender, remove, false))
                             .catch((error) => {
                                 send(channel, [StatusFlag.EXCEPTION, tId, error.message || error]);
                                 removeId(tId);
@@ -217,6 +217,23 @@ export class IpcReceiver<O extends MethodicalEvents> {
                         } else {
                             throw new Error(`${channel}: OK status received for id (${tId}) with no timeout.`);
                         }
+                        break;
+                    }
+                    case StatusFlag.NOTIFICATION: {
+                        const send = generateSendFn<O, M, E>(ev, pd.sendMethod);
+                        const sender = new IpcSender<O, typeof send>(pd.shared, send);
+
+                        Promise.resolve(callback(tData as ReceiverValue<O, M, E>, sender, remove, true))
+                            .catch(emitError);
+
+                        for (const [notify] of notifications) {
+                            (notify as NotificationCallback<O, M, E>)(
+                                tData as ReceiverValue<O, M, E>,
+                                sender,
+                                () => pd.shared.listener.removeNotification(channel, notify),
+                            );
+                        }
+
                         break;
                     }
                     case StatusFlag.DUPLICATE_ID:

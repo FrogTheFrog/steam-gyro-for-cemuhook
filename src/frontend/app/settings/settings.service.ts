@@ -141,40 +141,31 @@ export class SettingsService {
      * Starts motion data stream.
      */
     public startMotionDataStream() {
-        return Promise.resolve(this.dataIsStreaming.value)
-            .then((streaming) => {
-                if (!streaming) {
-                    this.graphData.clearData();
-                    this.dataIsStreaming.next(true);
-                    return this.ipc.sender.request("POST", "motion-data-stream", true)
-                        .catch(this.messageService.errorHandler) as Promise<void>;
-                }
-            });
+        if (!this.dataIsStreaming.value) {
+            this.graphData.clearData();
+            this.dataIsStreaming.next(true);
+            this.ipc.sender.notify("POST", "motion-data-stream", true);
+        }
     }
 
     /**
      * Stops motion data stream.
      */
     public stopMotionDataStream() {
-        return Promise.resolve(this.dataIsStreaming.value)
-            .then((streaming) => {
-                if (streaming) {
-                    this.clearMotionDataTimeout();
-                    this.dataIsStreaming.next(false);
-                    return this.ipc.sender.request("POST", "motion-data-stream", false)
-                        .catch(this.messageService.errorHandler) as Promise<void>;
-                }
-            });
+        if (this.dataIsStreaming.value) {
+            this.clearMotionDataTimeout();
+            this.dataIsStreaming.next(false);
+            this.ipc.sender.notify("POST", "motion-data-stream", false);
+        }
     }
 
     /**
      * Cleanup.
      */
     public ngOnDestroy() {
-        this.stopMotionDataStream().then(() => {
-            this.ipcReceiver.removeDataHandler(true);
-            this.ipcReceiver.removeNotification(true);
-        });
+        this.stopMotionDataStream();
+        this.ipcReceiver.removeDataHandler(true);
+        this.ipcReceiver.removeNotification(true);
     }
 
     /**

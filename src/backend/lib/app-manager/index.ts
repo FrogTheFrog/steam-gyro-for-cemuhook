@@ -212,8 +212,7 @@ export class AppManager {
             subscription.unsubscribe();
             if (stream) {
                 subscription = this.server.controller.onReport.subscribe((data) => {
-                    response.request("PUT", "data-stream", data)
-                        .catch((error) => this.emitError(error, { isFatal: true }));
+                    response.notify("PUT", "data-stream", data);
                 });
                 this.subscriptions.add(subscription);
             }
@@ -248,12 +247,10 @@ export class AppManager {
             subscription.unsubscribe();
             if (streamStatus) {
                 subscription = this.server.controller.onOpenClose.subscribe((value) => {
-                    response.request("PUT", "device-status", value)
-                        .catch((error) => this.emitError(error, { isFatal: true }));
+                    response.notify("PUT", "device-status", value);
                 });
                 this.subscriptions.add(subscription);
-                response.request("PUT", "device-status", this.server.controller.isOpen())
-                    .catch((error) => this.emitError(error, { isFatal: true }));
+                response.notify("PUT", "device-status", this.server.controller.isOpen());
             }
         });
     }
@@ -269,8 +266,7 @@ export class AppManager {
             subscription.unsubscribe();
             if (streamStatus) {
                 subscription = this.server.serverInstance.onStatusChange.subscribe((value) => {
-                    response.request("PUT", "connection-status", value)
-                        .catch((error) => this.emitError(error, { isFatal: true }));
+                    response.notify("PUT", "connection-status", value);
                 });
                 this.subscriptions.add(subscription);
             }
@@ -288,8 +284,7 @@ export class AppManager {
             subscription.unsubscribe();
             if (stream) {
                 subscription = this.server.controller.onMotionsData.subscribe((data) => {
-                    response.request("POST", "motion-data-stream", data)
-                        .catch((error) => this.emitError(error, { isFatal: true }));
+                    response.notify("POST", "motion-data-stream", data);
                 });
                 this.subscriptions.add(subscription);
             }

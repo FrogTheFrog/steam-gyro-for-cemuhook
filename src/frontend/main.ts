@@ -11,4 +11,8 @@ if (process.env.NODE_ENV === "production") {
     enableProdMode();
 }
 
-platformBrowserDynamic().bootstrapModule(AppModule);
+platformBrowserDynamic().bootstrapModule(AppModule).then((ref) => {
+    window.addEventListener("beforeunload", () => {
+        ref.destroy();
+    }, { once: true });
+});

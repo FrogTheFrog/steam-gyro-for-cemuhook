@@ -83,26 +83,24 @@ export class AppComponent implements OnInit, OnDestroy {
             } else if (event === "unmaximize") {
                 this.renderer.addClass(this.document.body, "window-resize-border");
             }
-        }, (error) => this.messageService.error(error));
+        },  this.messageService.errorHandler);
 
         if (!this.ipc.window.isMaximized()) {
             this.renderer.addClass(this.document.body, "window-resize-border");
         }
 
-        this.ipc.sender.request("POST", "device-status", true).catch(this.messageService.errorHandler);
-        this.ipc.sender.request("POST", "connection-status", true).catch(this.messageService.errorHandler);
+        this.ipc.sender.notify("POST", "device-status", true);
+        this.ipc.sender.notify("POST", "connection-status", true);
     }
 
     /**
      * Clean up after subscriptions and event listeners.
      */
     public ngOnDestroy() {
-        this.ipc.sender.request("POST", "device-status", false).then(() => {
-            this.ipcReceiver.removeDataHandler(true);
-        });
-        this.ipc.sender.request("POST", "connection-status", false).then(() => {
-            this.ipcReceiver.removeDataHandler(true);
-        });
+        this.ipc.sender.notify("POST", "device-status", false);
+        this.ipc.sender.notify("POST", "connection-status", false);
+
+        this.ipcReceiver.removeDataHandler(true);
         this.subscriptions.unsubscribe();
     }
 

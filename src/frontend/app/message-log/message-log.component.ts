@@ -1,4 +1,4 @@
-import { Component, OnInit } from "@angular/core";
+import { Component } from "@angular/core";
 import { MessageObject } from "../../../shared/models";
 import { MessageLogService } from "./message-log.service";
 
@@ -10,13 +10,9 @@ import { MessageLogService } from "./message-log.service";
     styleUrls: ["./message-log.style.scss"],
     templateUrl: "./message-log.template.html",
 })
-export class MessageLogComponent implements OnInit {
+export class MessageLogComponent {
     constructor(public messageLogService: MessageLogService) {
 
-    }
-
-    public ngOnInit() {
-        //
     }
 
     /**

@@ -46,10 +46,19 @@ function generateSendFn<
     if (typeof sendMethod === "function") {
         return sendMethod;
     } else {
+        const isDestroyed = () =>  typeof sendMethod.isDestroyed === "function" ? sendMethod.isDestroyed() : false;
         if (typeof webContentsId === "number") {
-            return (channel, data) => sendMethod.sendTo(webContentsId, channel, data);
+            return (channel, data) => {
+                if (!isDestroyed()){
+                    sendMethod.sendTo(webContentsId, channel, data);
+                }
+            };
         } else {
-            return (channel, data) => sendMethod.send(channel, data);
+            return (channel, data) => {
+                if (!isDestroyed()){
+                    sendMethod.send(channel, data);
+                }
+            };
         }
     }
 }

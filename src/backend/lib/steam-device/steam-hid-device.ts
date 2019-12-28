@@ -61,8 +61,9 @@ interface Item {
 interface InternalData {
     errorSubject: Subject<Error>;
     motionDataSubject: Subject<MotionDataWithTimestamp>;
-    openCloseSubject: Subject<boolean>;
+    openCloseSubject: Subject<{ info: string, status: boolean }>;
     reportSubject: Subject<SteamDeviceReport>;
+    infoString: string | null;
 }
 
 /**
@@ -135,7 +136,7 @@ export class SteamHidDevice extends GenericSteamDevice {
 
         for (const [path, item] of this.itemList) {
             if (item.device === null) {
-                if ((activeOnly && item.active) || !activeOnly) {
+                if (((activeOnly && item.active) || !activeOnly) && !this.blacklistedDevices.has(path)) {
                     devices.push(path);
                 }
             }
@@ -148,6 +149,11 @@ export class SteamHidDevice extends GenericSteamDevice {
      * Stored item list.
      */
     private static itemList = new Map<string, Item>();
+
+    /**
+     * Temporary blacklisted devices in case they might have been disconnected.
+     */
+    private static blacklistedDevices = new Set<string>();
 
     /**
      * Stored device array.
@@ -210,10 +216,13 @@ export class SteamHidDevice extends GenericSteamDevice {
         const allDevices = this.getDevices();
         let listChanged = false;
 
-        const checkUsagePage = (value?: number) => {
-            // Windows likes to provide non-existing device handles that needs to be filtered out
-            // by UsagePage property.
-            return process.platform === "win32" ? value === 0xFF00 : true;
+        const osSpecificFilter = (device: HidDevice, type: DeviceType) => {
+            if (process.platform === "win32") {
+                return device.usagePage === 0xFF00;
+            }
+            else {
+                return type === "wired" ? device.interface === 1 : true;
+            }
         };
 
         const filterDevices = (devices: HidDevice[], type: DeviceType) => {
@@ -257,7 +266,7 @@ export class SteamHidDevice extends GenericSteamDevice {
                             return device.productId === SteamHidId.DongleProduct &&
                                 device.vendorId === SteamHidId.Vendor &&
                                 device.interface > 0 && device.interface < 5 &&
-                                checkUsagePage(device.usagePage);
+                                osSpecificFilter(device, type);
                         },
                         sort: (a, b) => {
                             return a.interface > b.interface ? 1 : 0;
@@ -271,7 +280,7 @@ export class SteamHidDevice extends GenericSteamDevice {
                             return device.productId === SteamHidId.WiredProduct &&
                                 device.vendorId === SteamHidId.Vendor &&
                                 device.interface > 0 && device.interface < 5 &&
-                                checkUsagePage(device.usagePage);
+                                osSpecificFilter(device, type);
                         },
                         sort: (a, b) => {
                             return a.interface > b.interface ? 1 : 0;
@@ -356,6 +365,7 @@ export class SteamHidDevice extends GenericSteamDevice {
             motionDataSubject: new Subject(),
             openCloseSubject: new Subject(),
             reportSubject: new Subject(),
+            infoString: null,
         });
     }
 
@@ -373,6 +383,10 @@ export class SteamHidDevice extends GenericSteamDevice {
 
     public get onOpenClose() {
         return getInternals(this).openCloseSubject.asObservable();
+    }
+
+    public get infoString() {
+        return getInternals(this).infoString;
     }
 
     public get report() {
@@ -403,6 +417,13 @@ export class SteamHidDevice extends GenericSteamDevice {
                     });
                     this.hidDevice.on("error", (error: Error) => {
                         if (error.message === "could not read from HID device") {
+                            // It is possible that device has been physically disconnected, we should
+                            // try to handle this gracefully
+                            SteamHidDevice.blacklistedDevices.add(devicePath);
+                            setTimeout(() => {
+                                SteamHidDevice.blacklistedDevices.delete(devicePath);
+                            }, 3000);
+
                             this.close();
                         } else {
                             pd.errorSubject.next(error);
@@ -410,8 +431,9 @@ export class SteamHidDevice extends GenericSteamDevice {
                     });
 
                     item.device = this;
+                    pd.infoString = JSON.stringify(item.info, undefined, "    ");
                     this.connectionTimestamp = microtime.now();
-                    pd.openCloseSubject.next(true);
+                    pd.openCloseSubject.next({ info: pd.infoString, status: true });
                 }
             }
         }
@@ -421,8 +443,13 @@ export class SteamHidDevice extends GenericSteamDevice {
 
     public close() {
         if (this.isOpen()) {
+            const pd = getInternals(this);
+            const info = pd.infoString!;
+
             this.hidDevice!.close();
             this.hidDevice = null;
+            pd.infoString = null;
+
             for (const [path, item] of SteamHidDevice.itemList) {
                 if (item.device === this) {
                     item.device = null;
@@ -430,7 +457,7 @@ export class SteamHidDevice extends GenericSteamDevice {
                 }
             }
 
-            getInternals(this).openCloseSubject.next(false);
+            pd.openCloseSubject.next({ info, status: false });
         }
         return this;
     }
@@ -661,7 +688,7 @@ export class SteamHidDevice extends GenericSteamDevice {
             const connection = data[index];
             if (connection === 0x01) {
                 report.state = SteamDeviceState.Disconnected;
-                this.close();
+                setImmediate(() => this.close());
             }
             else if (connection === 0x02) {
                 report.state = SteamDeviceState.Connected;

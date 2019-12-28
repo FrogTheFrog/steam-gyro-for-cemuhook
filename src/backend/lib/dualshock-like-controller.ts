@@ -17,7 +17,7 @@ interface InternalData {
     dualshockDataSubject: Subject<DualshockData>;
     errorSubject: Subject<Error>;
     motionDataSubject: Subject<MotionDataWithTimestamp>;
-    openCloseSubject: Subject<boolean>;
+    openCloseSubject: Subject<{ info: string, status: boolean }>;
     reportSubject: Subject<SteamDeviceReport>;
 }
 
@@ -96,6 +96,10 @@ export class DualshockLikeController extends GenericDualshockController<SteamDev
 
     public get onOpenClose() {
         return getInternals(this).openCloseSubject.asObservable();
+    }
+
+    public get infoString() {
+        return this.device.infoString;
     }
 
     public open() {

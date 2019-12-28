@@ -10,8 +10,9 @@ import { SteamHidDevice } from "./steam-hid-device";
 interface InternalData {
     errorSubject: Subject<Error>;
     motionDataSubject: Subject<MotionDataWithTimestamp>;
-    openCloseSubject: Subject<boolean>;
+    openCloseSubject: Subject<{ info: string, status: boolean }>;
     reportSubject: Subject<SteamDeviceReport>;
+    infoString: string | null;
 }
 
 /**
@@ -50,6 +51,7 @@ export class SteamDevice extends GenericSteamDevice {
             motionDataSubject: new Subject(),
             openCloseSubject: new Subject(),
             reportSubject: new Subject(),
+            infoString: null,
         });
     }
 
@@ -69,6 +71,10 @@ export class SteamDevice extends GenericSteamDevice {
         return getInternals(this).openCloseSubject.asObservable();
     }
 
+    public get infoString() {
+        return getInternals(this).infoString;
+    }
+
     public get report() {
         return this.device != null ? this.device.report : null;
     }
@@ -79,11 +85,13 @@ export class SteamDevice extends GenericSteamDevice {
 
     public open() {
         this.close();
+        const pd = getInternals(this);
 
         this.device = (() => {
             // Try HID devices first
             const device = new SteamHidDevice();
             if (device.open().isOpen()) {
+                pd.infoString = device.infoString;
                 return device;
             }
 
@@ -91,15 +99,14 @@ export class SteamDevice extends GenericSteamDevice {
         })();
 
         if (this.isOpen()) {
-            const pd = getInternals(this);
-            pd.openCloseSubject.next(true);
+            pd.openCloseSubject.next({ info: pd.infoString!, status: true });
 
             this.deviceEvents = new Subscription()
                 .add(this.device!.onMotionsData.subscribe((value) => pd.motionDataSubject.next(value)))
                 .add(this.device!.onReport.subscribe((value) => pd.reportSubject.next(value)))
                 .add(this.device!.onError.subscribe((value) => pd.errorSubject.next(value)))
                 .add(this.device!.onOpenClose.subscribe((value) => {
-                    if (value === false) {
+                    if (value.status === false) {
                         this.close();
                     }
                 }));
@@ -110,11 +117,15 @@ export class SteamDevice extends GenericSteamDevice {
 
     public close() {
         if (this.isOpen()) {
+            const pd = getInternals(this);
+            const info = pd.infoString!;
+
             this.deviceEvents.unsubscribe();
             this.device!.close();
             this.device = null;
+            pd.infoString = null;
 
-            getInternals(this).openCloseSubject.next(false);
+            pd.openCloseSubject.next({ info, status: false });
             this.watcherCallback();
         }
 

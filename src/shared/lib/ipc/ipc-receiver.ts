@@ -59,10 +59,19 @@ function generateSendFn<
     if (typeof sendMethod === "object") {
         const id = ev.senderId;
         if (typeof id === "number") {
+            const isDestroyed = () =>  typeof sendMethod.isDestroyed === "function" ? sendMethod.isDestroyed() : false;
             if (id === 0) {
-                return (channel, data) => sendMethod.send(channel, data);
+                return (channel, data) => {
+                    if (!isDestroyed()){
+                        sendMethod.send(channel, data);
+                    }
+                };
             } else {
-                return (channel, data) => sendMethod.sendTo(id, channel, data);
+                return (channel, data) => {
+                    if (!isDestroyed()){
+                        sendMethod.sendTo(id, channel, data);
+                    }
+                };
             }
         } else {
             throw new TypeError("Event does not contain \"senderId\".");
@@ -70,7 +79,12 @@ function generateSendFn<
     } else {
         const sender = ev.sender;
         if (sender !== undefined && typeof sender.send === "function") {
-            return (channel, data) => sender.send(channel, data);
+            const isDestroyed = () =>  typeof sender.isDestroyed === "function" ? sender.isDestroyed() : false;
+            return (channel, data) => {
+                if (!isDestroyed()){
+                    sender.send(channel, data);
+                }
+            };
         } else {
             throw new TypeError(`Event does not contain \"${sender ? "sender" : "sender.send"}\".`);
         }

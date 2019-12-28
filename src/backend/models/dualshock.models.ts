@@ -144,7 +144,12 @@ export abstract class GenericDualshockController<R = object> {
     /**
      * Returns observable for open and close events.
      */
-    public abstract readonly onOpenClose: Observable<boolean>;
+    public abstract readonly onOpenClose: Observable<{ info: string, status: boolean }>;
+
+    /**
+     * Returns string containing information about device.
+     */
+    public abstract readonly infoString: string | null;
 
     /**
      * Connects to available steam device.

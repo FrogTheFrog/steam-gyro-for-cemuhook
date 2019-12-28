@@ -171,6 +171,7 @@ export type SenderFunction<T> = (channel: string, data: TransferData<T>) => void
 export interface ListenerEventLike {
     sender?: {
         send: (channel: string, data: any) => void;
+        isDestroyed?(): boolean;
     };
     senderId?: number;
 }
@@ -194,6 +195,7 @@ export interface EventEmitterLike {
 export interface EventSenderLike {
     send(channel: string, data: any): void;
     sendTo(webContentsId: number, channel: string, data: any): void;
+    isDestroyed?(): boolean;
 }
 
 /**

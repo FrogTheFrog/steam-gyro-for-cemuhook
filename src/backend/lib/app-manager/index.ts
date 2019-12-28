@@ -77,7 +77,7 @@ export class AppManager {
     /**
      * Instance of winston logger.
      */
-    private logger: Logger | null = null;
+    private logger: Logger;
 
     /**
      * All received and emitter messages.
@@ -92,13 +92,37 @@ export class AppManager {
         private userDirectory: string,
         private settingsFilename: string,
     ) {
+        this.logger = createLogger({
+            exitOnError: false,
+            format: format.combine(
+                format.timestamp(),
+                format.printf(({ message, timestamp }) => {
+                    return `[${timestamp}] ${message}`;
+                }),
+            ),
+            transports: [
+                new transports.Console({ level: "silly" }),
+                new transports.File({ level: "error", filename: path.join(this.userDirectory, "sgfc.log") }),
+            ]
+        });
+        const logDeviceInfo = (data: string | null, isConnected: boolean) => {
+            if (data !== null)
+            {
+                this.logger.info(`Device status: ${isConnected ? "Connected" : "Disconnected"}.\r\nDevice info:\r\n${data}.`);
+            }
+        }
+        logDeviceInfo(this.server.controller.infoString, this.server.controller.isOpen());
+
         this.settingsPath = path.join(this.userDirectory, this.settingsFilename);
         this.ipc.receiver.onError.add((error) => this.emitError(error, { isFatal: true }));
         this.bindEvents();
 
-        this.subscriptions = this.server.serverInstance.onError.subscribe((value) => {
+        this.subscriptions = new Subscription();
+        this.subscriptions.add(this.server.serverInstance.onError.subscribe((value) => {
             this.emitError(value, { display: true });
-        });
+        })).add(this.server.controller.onOpenClose.subscribe((value) => {
+            logDeviceInfo(value.info, value.status);
+        }));
     }
 
     /**
@@ -126,22 +150,6 @@ export class AppManager {
             data: { name: error.name, message: error.message, stack: error.stack },
             type: "error",
         };
-
-        if (this.logger === null) {
-            this.logger = createLogger({
-                exitOnError: false,
-                format: format.combine(
-                    format.timestamp(),
-                    format.printf(({ stack, timestamp }) => {
-                        return `[${timestamp}] ${stack}`;
-                    }),
-                ),
-                level: "error",
-                transports: [
-                    new transports.File({ filename: path.join(this.userDirectory, "sgfc.log") }),
-                ],
-            });
-        }
 
         this.logger.error(error);
 
@@ -247,7 +255,7 @@ export class AppManager {
             subscription.unsubscribe();
             if (streamStatus) {
                 subscription = this.server.controller.onOpenClose.subscribe((value) => {
-                    response.notify("PUT", "device-status", value);
+                    response.notify("PUT", "device-status", value.status);
                 });
                 this.subscriptions.add(subscription);
                 response.notify("PUT", "device-status", this.server.controller.isOpen());

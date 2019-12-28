@@ -7,7 +7,7 @@ if (process.platform === "win32"){
     userDataDir = process.env.PORTABLE_EXECUTABLE_DIR || "";
 } else { // linux, macos, etc.
     if (process.env.HOME){
-        userDataDir = path.join(process.env.HOME, ".config/steam-gyro");
+        userDataDir = path.join(process.env.HOME, ".config/steam-gyro-for-cemuhook");
     } else {
         userDataDir = "";
     }

@@ -44,6 +44,10 @@ export class IpcMain<O extends MethodicalEvents> {
      * @param webContents Instance of `webContents` used to send data.
      */
     public createSender(webContents: WebContents): IpcSender<O, SenderFunction<any>> {
-        return new IpcSender(getInternals(this).shared, (channel, data) => webContents.send(channel, data));
+        return new IpcSender(getInternals(this).shared, (channel, data) => {
+            if (!webContents.isDestroyed()) {
+                webContents.send(channel, data);
+            }
+        });
     }
 }

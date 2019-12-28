@@ -175,6 +175,13 @@ export class AppUserInterface {
     }
 
     /**
+     * Indicates whether renderer is ready to display.
+     */
+    public get ready() {
+        return this.loaded.value;
+    }
+
+    /**
      * Prepare for app exit.
      */
     public prepareToExit() {

@@ -103,14 +103,13 @@ export class AppManager {
             transports: [
                 new transports.Console({ level: "silly" }),
                 new transports.File({ level: "error", filename: path.join(this.userDirectory, "sgfc.log") }),
-            ]
+            ],
         });
         const logDeviceInfo = (data: string | null, isConnected: boolean) => {
-            if (data !== null)
-            {
-                this.logger.info(`Device status: ${isConnected ? "Connected" : "Disconnected"}.\r\nDevice info:\r\n${data}.`);
+            if (data !== null) {
+                this.emitInfo(`Device status: ${isConnected ? "Connected" : "Disconnected"}`, { stack: data } );
             }
-        }
+        };
         logDeviceInfo(this.server.controller.infoString, this.server.controller.isOpen());
 
         this.settingsPath = path.join(this.userDirectory, this.settingsFilename);
@@ -137,6 +136,41 @@ export class AppManager {
         this.subscriptions.unsubscribe();
 
         app.quit();
+    }
+
+    /**
+     * Log info message and optionally display it on renderer.
+     * @param info Info to send.
+     * @param options Additional actions to do.
+     */
+    public emitInfo(info: string, options?: { stack?: string, display?: boolean }) {
+        // tslint:disable-next-line: no-unnecessary-initializer
+        const { stack = undefined, display = false } = options || {};
+        const message: MessageObject = {
+            data: { message: info, stack },
+            type: "info",
+        };
+
+        this.logger.info(`${info}${stack ? `\n${stack}` : ""}`);
+
+        Promise.resolve()
+            .then(() => {
+                if (display || this.ui.ready) {
+                    return this.ui.show()
+                        .then((renderer) => {
+                            return this.ipc.createSender(renderer.webContents).request(
+                                "POST",
+                                "message",
+                                {
+                                    display,
+                                    message,
+                                },
+                            ) as Promise<unknown>;
+                        });
+                }
+            }).then(() => {
+                this.messages.push(message);
+            }).catch((value) => this.emitError(value, { isFatal: true }));
     }
 
     /**
@@ -193,7 +227,7 @@ export class AppManager {
                 return this.settings.writeSettings(this.settingsPath);
             }).then(() => {
                 const message: MessageObject = {
-                    data: `Restarted server @${serverSettings.address}:${serverSettings.port}`,
+                    data: { message: `Restarted server @${serverSettings.address}:${serverSettings.port}` },
                     type: "info",
                 };
 

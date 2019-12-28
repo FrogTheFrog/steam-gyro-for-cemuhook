@@ -60,10 +60,10 @@ interface Item {
  */
 interface InternalData {
     errorSubject: Subject<Error>;
+    infoString: string | null;
     motionDataSubject: Subject<MotionDataWithTimestamp>;
     openCloseSubject: Subject<{ info: string, status: boolean }>;
     reportSubject: Subject<SteamDeviceReport>;
-    infoString: string | null;
 }
 
 /**
@@ -362,10 +362,10 @@ export class SteamHidDevice extends GenericSteamDevice {
         super();
         getInternals(this, {
             errorSubject: new Subject(),
+            infoString: null,
             motionDataSubject: new Subject(),
             openCloseSubject: new Subject(),
             reportSubject: new Subject(),
-            infoString: null,
         });
     }
 

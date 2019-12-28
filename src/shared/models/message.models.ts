@@ -11,7 +11,7 @@ export interface ErrorObject {
  */
 export interface InfoObject {
     type: "info";
-    data: string;
+    data: { message: string, stack?: string };
 }
 
 /**

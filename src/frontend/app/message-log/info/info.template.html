@@ -2,6 +2,7 @@
     <mat-card-header>
         <mat-icon mat-card-avatar svgIcon="information-outline" color="accent"></mat-icon>
         <mat-card-title>Information</mat-card-title>
-        <mat-card-subtitle>{{data}}</mat-card-subtitle>
+        <mat-card-subtitle>{{data.message}}</mat-card-subtitle>
     </mat-card-header>
+    <mat-card-content *ngIf="data.stack && data.stack.length > 0">{{data.stack}}</mat-card-content>
 </mat-card>

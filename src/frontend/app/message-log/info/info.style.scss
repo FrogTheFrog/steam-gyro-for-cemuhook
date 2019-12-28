@@ -5,8 +5,15 @@ $foreground: map-get($dark-theme, foreground);
 
 :host {
     max-width: 75vw;
-
+    
     mat-card-subtitle {
         margin: 0;
+    }
+
+    mat-card-content {
+        margin-top: 16px;
+        font-family: "Hack";
+        white-space: pre-wrap;
+        font-size: 13px;
     }
 }

@@ -34,20 +34,21 @@ export class MessageLogService implements OnDestroy {
     constructor(private ipc: IpcService, private overlay: Overlay, private injector: Injector, private zone: NgZone) {
         this.ipcReceiver = this.ipc.receiver.clone();
         this.ipcReceiver.onError.add(this.errorHandler);
-        this.ipcReceiver.on("POST", "message", (data) => {
-            this.zone.run(() => {
-                const { display, message } = data;
-                this.addToList(message);
-                if (display) {
-                    this.open(message);
+
+        this.ipcReceiver.on("POST", "sync-messages", (data) => {
+            const { displayIndex, fullSync } = data;
+
+            this.syncMessages(fullSync || false).then((messages) => {
+                this.addToList(messages);
+
+                if (typeof displayIndex === "number") {
+                    this.zone.run(() => this.open(this.list.value[displayIndex]));
                 }
-            });
+            }).catch(this.errorHandler);
         });
 
-        this.ipc.sender.request("GET", "messages", void (0)).then((data) => {
-            this.zone.run(() => {
-                this.list.next(data);
-            });
+        this.syncMessages(true).then((messages) => {
+            this.addToList(messages);
         }).catch(this.errorHandler);
     }
 
@@ -68,8 +69,8 @@ export class MessageLogService implements OnDestroy {
             data: { name: error.name, message: error.message, stack: error.stack },
             type: "error",
         };
-        this.addToList(data);
-        this.ipc.sender.notify("POST", "message", data);
+        this.addToList([data]);
+        this.ipc.sender.notify("POST", "sync-messages", data);
         return data;
     }
 
@@ -108,12 +109,20 @@ export class MessageLogService implements OnDestroy {
     }
 
     /**
-     * Add message to list.
+     * Synchronizes current list of messages to backend.
+     * @param fullSync Specify whether to perform full synchronization.
+     */
+    private async syncMessages(fullSync: boolean) {
+        return this.ipc.sender.request("GET", "messages", fullSync ? 0 : this.list.value.length);
+    }
+
+    /**
+     * Add messages to list.
      * @param message Message to add.
      */
-    private addToList(message: MessageObject) {
+    private addToList(messages: MessageObject[]) {
         this.zone.run(() => {
-            this.list.next([...this.list.value, message]);
+            this.list.next([...this.list.value, ...messages]);
         });
     }
 

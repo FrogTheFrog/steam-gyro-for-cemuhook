@@ -11,7 +11,7 @@ export interface IpcEvents extends MethodicalEvents {
     GET: {
         "settings:server": [UserSettings["server"], void];
         "settings:filter": [UserSettings["filter"], void];
-        "messages": [MessageObject[], void];
+        "messages": [MessageObject[], number];
     };
     PUT: {
         "settings:server:address": [void, string];
@@ -27,6 +27,6 @@ export interface IpcEvents extends MethodicalEvents {
         "data-stream": [void, boolean];
         "connection-status": [void, boolean];
         "motion-data-stream": [[MotionDataWithTimestamp, void], [boolean, void]];
-        "message": [[{ display: boolean, message: MessageObject }, void], [MessageObject, void]];
+        "sync-messages": [[{ displayIndex?: number, fullSync?: true }, void], [MessageObject, void]];
     };
 }

@@ -24,7 +24,7 @@ export class AppManager {
             await app.whenReady();
 
             // Required for MacOS
-            app.on("activate", () => ui.show().catch((error) => manager.emitError(error, { isFatal: true })));
+            app.on("activate", () => ui.show().catch((error) => manager.logError(error, { isFatal: true })));
 
             // Prevent app exit upon renderer window close
             app.on("window-all-closed", (event: Event) => {
@@ -32,13 +32,13 @@ export class AppManager {
             });
 
             const exitCallback = () => {
-                manager.exit().catch((error) => manager.emitError(error, { isFatal: true }));
+                manager.exit().catch((error) => manager.logError(error, { isFatal: true }));
             };
             const serverRestartCallback = () => {
-                server.start(settings.current.server).catch((error) => manager.emitError(error, { isFatal: true }));
+                server.start(settings.current.server).catch((error) => manager.logError(error, { isFatal: true }));
             };
             const showRendererCallback = () => {
-                ui.show().catch((error) => manager.emitError(error, { isFatal: true }));
+                ui.show().catch((error) => manager.logError(error, { isFatal: true }));
             };
 
             const ipc = new IpcMain<IpcEvents>();
@@ -56,7 +56,7 @@ export class AppManager {
                 }
                 await server.start(settings.current.server);
             } catch (error) {
-                manager.emitError(error, { display: true });
+                manager.logError(error, { display: true });
                 settings.savingDisabled = true;
             }
 
@@ -107,18 +107,18 @@ export class AppManager {
         });
         const logDeviceInfo = (data: string | null, isConnected: boolean) => {
             if (data !== null) {
-                this.emitInfo(`Device status: ${isConnected ? "Connected" : "Disconnected"}`, { stack: data } );
+                this.logInfo(`Device status: ${isConnected ? "Connected" : "Disconnected"}`, { stack: data });
             }
         };
         logDeviceInfo(this.server.controller.infoString, this.server.controller.isOpen());
 
         this.settingsPath = path.join(this.userDirectory, this.settingsFilename);
-        this.ipc.receiver.onError.add((error) => this.emitError(error, { isFatal: true }));
+        this.ipc.receiver.onError.add((error) => this.logError(error, { isFatal: true }));
         this.bindEvents();
 
         this.subscriptions = new Subscription();
         this.subscriptions.add(this.server.serverInstance.onError.subscribe((value) => {
-            this.emitError(value, { display: true });
+            this.logError(value, { display: true });
         })).add(this.server.controller.onOpenClose.subscribe((value) => {
             logDeviceInfo(value.info, value.status);
         }));
@@ -143,7 +143,7 @@ export class AppManager {
      * @param info Info to send.
      * @param options Additional actions to do.
      */
-    public emitInfo(info: string, options?: { stack?: string, display?: boolean }) {
+    public logInfo(info: string, options?: { stack?: string, display?: boolean }) {
         // tslint:disable-next-line: no-unnecessary-initializer
         const { stack = undefined, display = false } = options || {};
         const message: MessageObject = {
@@ -152,25 +152,7 @@ export class AppManager {
         };
 
         this.logger.info(`${info}${stack ? `\n${stack}` : ""}`);
-
-        Promise.resolve()
-            .then(() => {
-                if (display || this.ui.ready) {
-                    return this.ui.show()
-                        .then((renderer) => {
-                            return this.ipc.createSender(renderer.webContents).request(
-                                "POST",
-                                "message",
-                                {
-                                    display,
-                                    message,
-                                },
-                            ) as Promise<unknown>;
-                        });
-                }
-            }).then(() => {
-                this.messages.push(message);
-            }).catch((value) => this.emitError(value, { isFatal: true }));
+        this.logMessageToRendered(message, display);
     }
 
     /**
@@ -178,7 +160,7 @@ export class AppManager {
      * @param error Error to log.
      * @param options Additional actions to do.
      */
-    public emitError(error: Error, options?: { isFatal?: boolean, display?: boolean }) {
+    public logError(error: Error, options?: { isFatal?: boolean, display?: boolean }) {
         const { isFatal = false, display = false } = options || {};
         const message: MessageObject = {
             data: { name: error.name, message: error.message, stack: error.stack },
@@ -187,26 +169,31 @@ export class AppManager {
 
         this.logger.error(error);
 
-        Promise.resolve()
-            .then(() => {
-                if (isFatal) {
-                    return this.exit();
-                } else if (display) {
-                    return this.ui.show()
-                        .then((renderer) => {
-                            return this.ipc.createSender(renderer.webContents).request(
-                                "POST",
-                                "message",
-                                {
-                                    display: true,
-                                    message,
-                                },
-                            ) as Promise<unknown>;
-                        });
-                }
-            }).then(() => {
-                this.messages.push(message);
-            }).catch((value) => this.emitError(value, { isFatal: true }));
+        if (isFatal) {
+            Promise.resolve(this.exit());
+        } else {
+            this.logMessageToRendered(message, display);
+        }
+    }
+
+    /**
+     * Emits message to be logged by renderer.
+     * @param message Message to log.
+     * @param display Specify whether the message should be displayed explicitly to user.
+     */
+    public logMessageToRendered(message: MessageObject, display: boolean = false) {
+        const index = this.messages.push(message) - 1;
+
+        this.ui.show()
+            .then((renderer) => {
+                this.ipc.createSender(renderer.webContents).notify(
+                    "POST",
+                    "sync-messages",
+                    {
+                        displayIndex: display ? index : undefined,
+                    },
+                );
+            }).catch((value) => this.logError(value, { isFatal: true }));
     }
 
     /**
@@ -226,19 +213,9 @@ export class AppManager {
                 this.settings.current.server = Object.assign({}, serverSettings);
                 return this.settings.writeSettings(this.settingsPath);
             }).then(() => {
-                const message: MessageObject = {
-                    data: { message: `Restarted server @${serverSettings.address}:${serverSettings.port}` },
-                    type: "info",
-                };
-
-                this.messages.push(message);
-
-                sender.request("POST", "message", {
-                    display: true,
-                    message,
-                }).catch((error) => this.emitError(error, { isFatal: true }));
+                this.logInfo(`Restarted server @${serverSettings.address}:${serverSettings.port}`, { display: true });
             }).catch((error) => {
-                this.emitError(error, { display: true });
+                this.logError(error, { display: true });
             });
         });
     }
@@ -274,7 +251,7 @@ export class AppManager {
             this.server.controller.setFilter(data);
 
             this.settings.writeSettings(this.settingsPath)
-                .catch((error) => this.emitError(error, { isFatal: true }));
+                .catch((error) => this.logError(error, { isFatal: true }));
         });
     }
 
@@ -337,14 +314,14 @@ export class AppManager {
      * Assign message exchange related events.
      */
     private messageEvents() {
-        this.ipc.receiver.on("POST", "message", (message) => {
+        this.ipc.receiver.on("POST", "sync-messages", (message) => {
             if (message.type === "error") {
-                this.emitError(message.data);
+                this.logError(message.data);
             } else {
-                this.messages.push(message);
+                this.logInfo(message.data.message, { stack: message.data.stack });
             }
-        }).on("GET", "messages", () => {
-            return this.messages;
+        }).on("GET", "messages", (sliceAtIndex) => {
+            return this.messages.slice(sliceAtIndex);
         });
     }
 

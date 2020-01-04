@@ -53,7 +53,7 @@ export class GraphData {
     /**
      * Currently observed data set.
      */
-    private currentDataSet: "original" | "filtered" | "both" = "original";
+    private currentDataSet: "original" | "filtered" | "both" = "both";
 
     constructor(private zone: NgZone) {
         this.clearData();

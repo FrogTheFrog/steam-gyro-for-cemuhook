@@ -108,6 +108,7 @@
 		"hack-font": "^3.3.0",
 		"hammerjs": "^2.0.8",
 		"html-webpack-plugin": "^3.2.0",
+		"kalmanjs": "^1.1.0",
 		"long": "^4.0.0",
 		"node-sass": "^4.13.0",
 		"postcss-loader": "^3.0.0",

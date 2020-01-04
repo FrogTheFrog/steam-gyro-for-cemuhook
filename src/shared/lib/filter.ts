@@ -1,5 +1,8 @@
 import { FilterData, MotionDataWithTimestamp, PositionTripletWithRange, TypedFilterData } from "../models";
 
+// tslint:disable-next-line: no-var-requires
+const KalmanFilter = require("kalmanjs");
+
 /**
  * Allowed data sets for filter.
  */
@@ -9,6 +12,34 @@ type DataSet = "accelerometer" | "gyro";
  * Allowed data fields for filter.
  */
 type DataField = "x" | "y" | "z";
+
+/**
+ * Static filter values that should be initialized once on filter set.
+ */
+type StaticFilterValues = { [T in keyof FilterData]: unknown } & {
+    ["kalman-1d"]: {
+        kalmanAccel: {
+            x: any,
+            y: any,
+            z: any,
+        },
+        kalmanGyro: {
+            x: any,
+            y: any,
+            z: any,
+        },
+    };
+};
+
+/**
+ * Extended TypedFilterData type to include static types.
+ */
+type ExtendedTypedFilterData<V = {
+    [T in keyof FilterData]: {
+        type: T,
+        value: FilterData[T],
+    } & StaticFilterValues[T]
+}> = V[keyof V];
 
 /**
  * Returns zeroed data triplet.
@@ -68,7 +99,7 @@ export class Filter {
     /**
      * Current filter type and value.
      */
-    private typeAndValue: TypedFilterData = { type: "disabled", value: [] };
+    private currentFilter: ExtendedTypedFilterData = { type: "disabled", value: [] };
 
     constructor() {
         this.in = {
@@ -115,10 +146,31 @@ export class Filter {
      * @param data Filter type and data.
      */
     public setFilter(data: TypedFilterData) {
-        if (data.type !== this.typeAndValue.type) {
+        if (data.type !== this.currentFilter.type) {
             this.clear();
         }
-        this.typeAndValue = data;
+        (this.currentFilter as TypedFilterData) = data;
+
+        // Update static filter values if any
+        switch (this.currentFilter.type) {
+            case "kalman-1d":
+                const { value } = this.currentFilter;
+
+                this.currentFilter.kalmanAccel = {
+                    x: new KalmanFilter({ R: value[0], Q: value[1], A: value[2], B: 0, C: value[3] }),
+                    y: new KalmanFilter({ R: value[0], Q: value[1], A: value[2], B: 0, C: value[3] }),
+                    z: new KalmanFilter({ R: value[0], Q: value[1], A: value[2], B: 0, C: value[3] }),
+                };
+                this.currentFilter.kalmanGyro = {
+                    x: new KalmanFilter({ R: value[4], Q: value[5], A: value[6], B: 0, C: value[7] }),
+                    y: new KalmanFilter({ R: value[4], Q: value[5], A: value[6], B: 0, C: value[7] }),
+                    z: new KalmanFilter({ R: value[4], Q: value[5], A: value[6], B: 0, C: value[7] }),
+                };
+                break;
+            default:
+                // Filters do not have static values
+                break;
+        }
     }
 
     /**
@@ -132,13 +184,21 @@ export class Filter {
             this.clear();
             elapsedTime = this.out.timestamp - this.in.timestamp;
         }
-        
-        switch (this.typeAndValue.type) {
+
+        switch (this.currentFilter.type) {
             case "disabled":
                 this.out = this.in;
                 break;
+            case "kalman-1d":
+                for (const field of fields) {
+                    this.out.accelerometer[field] =
+                        this.currentFilter.kalmanAccel[field].filter(this.in.accelerometer[field]);
+                    this.out.gyro[field] = this.currentFilter.kalmanGyro[field].filter(this.in.gyro[field]);
+                }
+                assignRest = true;
+                break;
             case "low-high-pass": {
-                const { value } = this.typeAndValue;
+                const { value } = this.currentFilter;
                 const dT = elapsedTime <= 0 ? 1 : elapsedTime;
                 const aAlpha = dT / (value[0] + dT);
                 const gAlpha = value[1] / (value[1] + dT);

@@ -31,6 +31,12 @@ export const UserSettingsSchema = {
                             minItems: 0,
                             type: "array",
                         },
+                        "kalman-1d": {
+                            default: [1, 1, 1, 1, 1, 1, 1, 1],
+                            maxItems: 8,
+                            minItems: 8,
+                            type: "array",
+                        },
                         "low-high-pass": {
                             default: [0, 0],
                             items: {

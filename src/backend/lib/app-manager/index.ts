@@ -184,16 +184,18 @@ export class AppManager {
     public logMessageToRendered(message: MessageObject, display: boolean = false) {
         const index = this.messages.push(message) - 1;
 
-        this.ui.show()
-            .then((renderer) => {
-                this.ipc.createSender(renderer.webContents).notify(
-                    "POST",
-                    "sync-messages",
-                    {
-                        displayIndex: display ? index : undefined,
-                    },
-                );
-            }).catch((value) => this.logError(value, { isFatal: true }));
+        if (display) {
+            this.ui.show()
+                .then((renderer) => {
+                    this.ipc.createSender(renderer.webContents).notify(
+                        "POST",
+                        "sync-messages",
+                        {
+                            displayIndex: index,
+                        },
+                    );
+                }).catch((value) => this.logError(value, { isFatal: true }));
+        }
     }
 
     /**

@@ -8,6 +8,9 @@ import { AppServer } from "./app-server";
 import { AppUserInterface } from "./app-user-interface";
 import { AppUserSettings } from "./app-user-settings";
 
+// Disable hardware acceleration as it is currently not needed.
+app.disableHardwareAcceleration();
+
 /**
  * Module responsible for handling main app logic.
  */

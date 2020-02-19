@@ -1,6 +1,14 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.3.5 - 2020-02-19
+
+### Changed
+* Disabled hardware acceleration as it is currently not needed (#33).
+
+### Added
+* Kalman-1D filter (just for fun).
+
 ## 1.3.4 - 2019-12-28
 
 ### Fixed

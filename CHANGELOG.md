@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.3.6 - 2020-09-06
+
+### Fixed
+* Settings would not save if server failed to start during the startup of the app (#37).
+
 ## 1.3.5 - 2020-02-19
 
 ### Changed

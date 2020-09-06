@@ -51,16 +51,18 @@ export class AppManager {
             const manager = new AppManager(ui, settings, server, ipc, userDirectory, settingsFilename);
 
             const settingsPath = path.join(userDirectory, settingsFilename);
+            let disableSaving = true;
 
             try {
                 const readSettings = await settings.readSettings(settingsPath);
-                if (readSettings !== null) {
-                    settings.current = readSettings;
-                }
+
+                disableSaving = false;
+                settings.current = readSettings !== null ? readSettings : settings.current;
+                
                 await server.start(settings.current.server);
             } catch (error) {
                 manager.logError(error, { display: true });
-                settings.savingDisabled = true;
+                settings.savingDisabled = disableSaving;
             }
 
             return manager;

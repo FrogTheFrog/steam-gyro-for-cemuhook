@@ -37,7 +37,7 @@ export class MessageLogService implements OnDestroy {
 
         this.ipcReceiver.on("POST", "sync-messages", (data) => {
             const { displayIndex, fullSync } = data;
-            const index = fullSync ? 0 : this.list.value.length
+            const index = fullSync ? 0 : this.list.value.length;
 
             this.syncMessages(index).then((messages) => {
                 this.addToList(messages, index);

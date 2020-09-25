@@ -27,7 +27,7 @@ interface InternalData {
  * Interface for holding information about client.
  */
 interface ClientData {
-    address: AddressInfo; 
+    address: AddressInfo;
     requests: ClientRequests;
 }
 
@@ -287,7 +287,7 @@ export class UdpServer {
                 data[3] === charCode("C")
             ) {
                 this.refreshStatus();
-                
+
                 let index = 4;
 
                 const protocolVer = data.readUInt16LE(index);
@@ -384,11 +384,11 @@ export class UdpServer {
                 } else if (msgType === UdpServerMessage.DSUC_PadDataReq) {
                     const registrationFlags = data[index++];
                     const idToRRegister = data[index++];
+                    const connectionId: string = `${clientEndpoint.family}_${clientEndpoint.address}:${clientEndpoint.port}_${clientId}`;
                     let macToRegister: string | string[] = ["", "", "", "", "", ""];
-                    let connectionId: string = `${clientEndpoint.family}_${clientEndpoint.address}:${clientEndpoint.port}_${clientId}`;
                     let client: ClientData | undefined;
 
-                    for (let i = 0; i < macToRegister.length; i++ , index++) {
+                    for (let i = 0; i < macToRegister.length; i++, index++) {
                         macToRegister[i] = `${data[index] < 15 ? "0" : ""}${data[index].toString(16)}`;
                     }
                     macToRegister = macToRegister.join(":");
@@ -555,10 +555,10 @@ export class UdpServer {
     /**
      * Status timeout used to detect lost UDP connection.
      */
-    private refreshStatus(){
+    private refreshStatus() {
         const internals = getInternals(this);
 
-        if (internals.onMessageTimeout !== null){
+        if (internals.onMessageTimeout !== null) {
             clearTimeout(internals.onMessageTimeout);
             internals.onMessageTimeout = null;
         }
@@ -574,10 +574,9 @@ export class UdpServer {
      * Change status indicating whether a connection to UDP server is established.
      * @param status New connection status.
      */
-    private changeConnectionStatus(status: boolean){
+    private changeConnectionStatus(status: boolean) {
         const internals = getInternals(this);
-        if (status !== internals.connectionStatus.value)
-        {
+        if (status !== internals.connectionStatus.value) {
             internals.connectionStatus.next(status);
         }
     }
@@ -592,7 +591,7 @@ export class UdpServer {
         const clientsToDelete: string[] = [];
         const currentTime = Date.now();
 
-        for (const [id, {address, requests}] of this.clients) {
+        for (const [id, { address, requests }] of this.clients) {
             if (currentTime - requests.timeForAllPads < UdpServerDefaults.ClientTimeoutLimit) {
                 clients.push(address);
             } else if (

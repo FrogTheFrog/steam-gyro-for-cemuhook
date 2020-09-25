@@ -2,6 +2,7 @@
  * Client request registration flags.
  */
 export const enum ClientRequestRegFlags {
+    All = 0,
     Id = 1,
     Mac = 2,
 }

@@ -3,7 +3,7 @@ import { ClientRequestRegFlags } from "../../models";
 /**
  * Helper class for handling clients.
  */
-export class ClientRequestTimes {
+export class ClientRequests {
     /**
      * Elapsed time for all pads.
      */
@@ -25,10 +25,10 @@ export class ClientRequestTimes {
      * @param idToReg ID to store by.
      * @param macToReg MAC to store by.
      */
-    public registerPadRequest(regFlags: ClientRequestRegFlags | 0, idToReg: number, macToReg: string) {
+    public registerPadRequest(regFlags: ClientRequestRegFlags, idToReg: number, macToReg: string) {
         const currentDate = Date.now();
 
-        if (regFlags === 0) {
+        if (regFlags === ClientRequestRegFlags.All) {
             this.timeForAllPads = currentDate;
         } else {
             if ((regFlags & ClientRequestRegFlags.Id) !== 0) {

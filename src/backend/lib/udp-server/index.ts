@@ -11,7 +11,7 @@ import {
     UdpServerDefaults,
     UdpServerMessage,
 } from "../../models";
-import { ClientRequestTimes } from "./client-request-times";
+import { ClientRequests } from "./client-requests";
 
 /**
  * Internal class data interface.
@@ -19,7 +19,16 @@ import { ClientRequestTimes } from "./client-request-times";
 interface InternalData {
     connectionStatus: BehaviorSubject<boolean>;
     errorSubject: Subject<Error>;
+    infoSubject: Subject<string>;
     onMessageTimeout: NodeJS.Timer | null;
+}
+
+/**
+ * Interface for holding information about client.
+ */
+interface ClientData {
+    address: AddressInfo; 
+    requests: ClientRequests;
 }
 
 /**
@@ -61,12 +70,13 @@ export class UdpServer {
     /**
      * Connected clients.
      */
-    private clients = new Map<AddressInfo, ClientRequestTimes>();
+    private clients = new Map<string, ClientData>();
 
     constructor() {
         getInternals(this, {
             connectionStatus: new BehaviorSubject<boolean>(false),
             errorSubject: new Subject(),
+            infoSubject: new Subject(),
             onMessageTimeout: null,
         });
     }
@@ -76,6 +86,13 @@ export class UdpServer {
      */
     public get onError() {
         return getInternals(this).errorSubject.asObservable();
+    }
+
+    /**
+     * Information observable.
+     */
+    public get onInfo() {
+        return getInternals(this).infoSubject.asObservable();
     }
 
     /**
@@ -368,19 +385,23 @@ export class UdpServer {
                     const registrationFlags = data[index++];
                     const idToRRegister = data[index++];
                     let macToRegister: string | string[] = ["", "", "", "", "", ""];
+                    let connectionId: string = `${clientEndpoint.family}_${clientEndpoint.address}:${clientEndpoint.port}_${clientId}`;
+                    let client: ClientData | undefined;
 
                     for (let i = 0; i < macToRegister.length; i++ , index++) {
                         macToRegister[i] = `${data[index] < 15 ? "0" : ""}${data[index].toString(16)}`;
                     }
-
                     macToRegister = macToRegister.join(":");
 
-                    if (!this.clients.has(clientEndpoint)) {
-                        this.clients.set(clientEndpoint, new ClientRequestTimes());
+                    client = this.clients.get(connectionId);
+                    if (client === undefined) {
+                        this.clients.set(connectionId, { address: clientEndpoint, requests: new ClientRequests() });
+                        client = this.clients.get(connectionId)!;
+
+                        getInternals(this).infoSubject.next(`New connection established: ${connectionId}.`);
                     }
 
-                    this.clients
-                        .get(clientEndpoint)!.registerPadRequest(registrationFlags, idToRRegister, macToRegister);
+                    client.requests.registerPadRequest(registrationFlags, idToRRegister, macToRegister);
                 }
             }
         } catch (error) {
@@ -568,32 +589,32 @@ export class UdpServer {
      */
     private getClientsForReport(meta: DualshockMeta) {
         const clients: AddressInfo[] = [];
-        const clientsToDelete: AddressInfo[] = [];
+        const clientsToDelete: string[] = [];
         const currentTime = Date.now();
 
-        for (const [info, times] of this.clients) {
-            if (currentTime - times.timeForAllPads < UdpServerDefaults.ClientTimeoutLimit) {
-                clients.push(info);
+        for (const [id, {address, requests}] of this.clients) {
+            if (currentTime - requests.timeForAllPads < UdpServerDefaults.ClientTimeoutLimit) {
+                clients.push(address);
             } else if (
-                (meta.padId < times.timeForPadById.length) &&
-                (currentTime - times.timeForPadById[meta.padId] < UdpServerDefaults.ClientTimeoutLimit)
+                (meta.padId < requests.timeForPadById.length) &&
+                (currentTime - requests.timeForPadById[meta.padId] < UdpServerDefaults.ClientTimeoutLimit)
             ) {
-                clients.push(info);
+                clients.push(address);
             } else if (
-                times.timeForPadByMac.has(meta.macAddress) &&
-                (currentTime - times.timeForPadByMac.get(meta.macAddress)! < UdpServerDefaults.ClientTimeoutLimit)
+                requests.timeForPadByMac.has(meta.macAddress) &&
+                (currentTime - requests.timeForPadByMac.get(meta.macAddress)! < UdpServerDefaults.ClientTimeoutLimit)
             ) {
-                clients.push(info);
+                clients.push(address);
             } else {
                 let isClientOk = false;
-                for (const time of times.timeForPadById) {
+                for (const time of requests.timeForPadById) {
                     if (currentTime - time < UdpServerDefaults.ClientTimeoutLimit) {
                         isClientOk = true;
                         break;
                     }
                 }
                 if (!isClientOk) {
-                    for (const [mac, time] of times.timeForPadByMac) {
+                    for (const [mac, time] of requests.timeForPadByMac) {
                         if (currentTime - time < UdpServerDefaults.ClientTimeoutLimit) {
                             isClientOk = true;
                             break;
@@ -601,7 +622,7 @@ export class UdpServer {
                     }
 
                     if (!isClientOk) {
-                        clientsToDelete.push(info);
+                        clientsToDelete.push(id);
                     }
                 }
             }
@@ -609,6 +630,7 @@ export class UdpServer {
 
         for (const client of clientsToDelete) {
             this.clients.delete(client);
+            getInternals(this).infoSubject.next(`Connection dropped: ${client}.`);
         }
 
         return clients;

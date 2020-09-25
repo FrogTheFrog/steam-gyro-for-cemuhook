@@ -37,9 +37,10 @@ export class MessageLogService implements OnDestroy {
 
         this.ipcReceiver.on("POST", "sync-messages", (data) => {
             const { displayIndex, fullSync } = data;
+            const index = fullSync ? 0 : this.list.value.length
 
-            this.syncMessages(fullSync || false).then((messages) => {
-                this.addToList(messages);
+            this.syncMessages(index).then((messages) => {
+                this.addToList(messages, index);
 
                 if (typeof displayIndex === "number") {
                     this.zone.run(() => this.open(this.list.value[displayIndex]));
@@ -47,8 +48,8 @@ export class MessageLogService implements OnDestroy {
             }).catch(this.errorHandler);
         });
 
-        this.syncMessages(true).then((messages) => {
-            this.addToList(messages);
+        this.syncMessages(0).then((messages) => {
+            this.addToList(messages, 0);
         }).catch(this.errorHandler);
     }
 
@@ -69,7 +70,7 @@ export class MessageLogService implements OnDestroy {
             data: { name: error.name, message: error.message, stack: error.stack },
             type: "error",
         };
-        this.addToList([data]);
+        this.addToList([data], this.list.value.length);
         this.ipc.sender.notify("POST", "sync-messages", data);
         return data;
     }
@@ -110,19 +111,20 @@ export class MessageLogService implements OnDestroy {
 
     /**
      * Synchronizes current list of messages to backend.
-     * @param fullSync Specify whether to perform full synchronization.
+     * @param index Specify index to get message from.
      */
-    private async syncMessages(fullSync: boolean) {
-        return this.ipc.sender.request("GET", "messages", fullSync ? 0 : this.list.value.length);
+    private async syncMessages(index: number) {
+        return this.ipc.sender.request("GET", "messages", index);
     }
 
     /**
      * Add messages to list.
      * @param message Message to add.
+     * @param index Index where received messages should be appended.
      */
-    private addToList(messages: MessageObject[]) {
+    private addToList(messages: MessageObject[], index: number) {
         this.zone.run(() => {
-            this.list.next([...this.list.value, ...messages]);
+            this.list.next([...this.list.value.slice(0, index), ...messages]);
         });
     }
 

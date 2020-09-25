@@ -546,7 +546,7 @@ export class UdpServer {
         internals.onMessageTimeout = setTimeout(() => {
             this.changeConnectionStatus(false);
             internals.onMessageTimeout = null;
-        }, 1000);
+        }, UdpServerDefaults.ClientTimeoutLimit);
     }
 
     /**

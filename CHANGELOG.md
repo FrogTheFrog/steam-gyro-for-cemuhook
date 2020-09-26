@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.4.0 - 2020-09-25
+
+### Fixed
+* Protocol was not implemented correcly - data was sent up to 5 times repeatedly to the same connection.
+* Messages were not displayed properly if the app window was open.
+
 ## 1.3.6 - 2020-09-06
 
 ### Fixed

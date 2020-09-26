@@ -54,13 +54,13 @@ export class AppUserInterface {
         showRendererCallback: () => void,
     ) {
         let iconpath: string;
-        if (process.platform === "win32"){
+        if (process.platform === "win32") {
             iconpath = path.join(__dirname, require("../../../../assets/icon.ico").default);
         } else { // linux, macos, etc.
             iconpath = path.join(__dirname, require("../../../../assets/icon.png").default);
         }
         this.icon = nativeImage.createFromPath(iconpath);
-        if (!this.icon){
+        if (!this.icon) {
             throw Error("Could not find tray icon image.");
         }
         this.menu = Menu.buildFromTemplate([
@@ -95,9 +95,10 @@ export class AppUserInterface {
     }
 
     /**
-     * Show renderer window.
+     * Open renderer window.
+     * @param show Specify whether the renderer must be shown to user.
      */
-    public async show() {
+    public async open(show: boolean) {
         if (this.renderer === null) {
             this.renderer = new BrowserWindow({
                 backgroundColor: "#222",
@@ -150,14 +151,20 @@ export class AppUserInterface {
             // Wait until everything is loaded
             this.renderer.webContents.once("did-finish-load", () => {
                 this.loaded.next(true);
-                this.renderer!.show();
+
+                if (show) {
+                    this.renderer!.show();
+                }
             });
         } else if (this.loaded.value && !this.renderer.isVisible()) {
             if (this.freeBrowserMemoryTimer !== null) {
                 clearTimeout(this.freeBrowserMemoryTimer);
                 this.freeBrowserMemoryTimer = null;
             }
-            this.renderer.show();
+            
+            if (show) {
+                this.renderer.show();
+            }
         }
 
         if (this.loaded.value) {

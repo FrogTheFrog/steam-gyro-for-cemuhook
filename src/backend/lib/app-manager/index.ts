@@ -27,7 +27,7 @@ export class AppManager {
             await app.whenReady();
 
             // Required for MacOS
-            app.on("activate", () => ui.show().catch((error) => manager.logError(error, { isFatal: true })));
+            app.on("activate", () => ui.open(true).catch((error) => manager.logError(error, { isFatal: true })));
 
             // Prevent app exit upon renderer window close
             app.on("window-all-closed", (event: Event) => {
@@ -41,7 +41,7 @@ export class AppManager {
                 server.start(settings.current.server).catch((error) => manager.logError(error, { isFatal: true }));
             };
             const showRendererCallback = () => {
-                ui.show().catch((error) => manager.logError(error, { isFatal: true }));
+                ui.open(true).catch((error) => manager.logError(error, { isFatal: true }));
             };
 
             const ipc = new IpcMain<IpcEvents>();
@@ -124,6 +124,8 @@ export class AppManager {
         this.subscriptions = new Subscription();
         this.subscriptions.add(this.server.serverInstance.onError.subscribe((value) => {
             this.logError(value, { display: true });
+        })).add(this.server.serverInstance.onInfo.subscribe((value) => {
+            this.logInfo(value);
         })).add(this.server.controller.onOpenClose.subscribe((value) => {
             logDeviceInfo(value.info, value.status);
         }));
@@ -157,7 +159,7 @@ export class AppManager {
         };
 
         this.logger.info(`${info}${stack ? `\n${stack}` : ""}`);
-        this.logMessageToRendered(message, display);
+        this.logMessageToRenderer(message, display);
     }
 
     /**
@@ -177,7 +179,7 @@ export class AppManager {
         if (isFatal) {
             Promise.resolve(this.exit());
         } else {
-            this.logMessageToRendered(message, display);
+            this.logMessageToRenderer(message, display);
         }
     }
 
@@ -186,17 +188,17 @@ export class AppManager {
      * @param message Message to log.
      * @param display Specify whether the message should be displayed explicitly to user.
      */
-    public logMessageToRendered(message: MessageObject, display: boolean = false) {
+    public logMessageToRenderer(message: MessageObject, display: boolean = false) {
         const index = this.messages.push(message) - 1;
 
-        if (display) {
-            this.ui.show()
+        if (display || this.ui.ready) {
+            this.ui.open(display)
                 .then((renderer) => {
                     this.ipc.createSender(renderer.webContents).notify(
                         "POST",
                         "sync-messages",
                         {
-                            displayIndex: index,
+                            displayIndex: display ? index : undefined,
                         },
                     );
                 }).catch((value) => this.logError(value, { isFatal: true }));

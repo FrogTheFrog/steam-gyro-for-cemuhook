@@ -134,7 +134,7 @@ export class MessageLogService implements OnDestroy {
      * @param messageRef Reference to overlay.
      */
     private createInjector(message: MessageObject, messageRef: MessageOverlayRef) {
-        let providers: StaticProvider[] = [];
+        const providers: StaticProvider[] = [];
 
         providers.push({ provide: MessageOverlayRef, useValue: messageRef });
         providers.push({ provide: MESSAGE_OBJECT_DATA, useValue: message.data });

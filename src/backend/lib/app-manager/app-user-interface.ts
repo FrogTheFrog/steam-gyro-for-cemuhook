@@ -110,8 +110,8 @@ export class AppUserInterface {
                 show: false,
                 webPreferences: {
                     devTools: process.env.NODE_ENV !== "production",
+                    enableRemoteModule: true,
                     nodeIntegration: true,
-                    enableRemoteModule: true
                 },
                 width: 1200,
             });

@@ -3,7 +3,6 @@ import { ChangeDetectorRef, Component, Inject, OnDestroy, OnInit, Renderer2 } fr
 import { fromEventPattern, merge, Subscription } from "rxjs";
 import { mapTo, takeUntil } from "rxjs/operators";
 import { MessageLogService } from "./message-log/message-log.service";
-import { IconService } from "./shared/services/icon.service";
 import { IpcService } from "./shared/services/ipc.service";
 
 /**

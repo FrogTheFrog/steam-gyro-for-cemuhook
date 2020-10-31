@@ -26,7 +26,7 @@ export function requireFiles<T extends string>(directory: string, extension: str
 }
 
 const code = requireFiles("@mdi/svg/svg", "svg",
-    "settings",
+    "cog",
     "playlist-edit",
     "gamepad",
     "wifi",

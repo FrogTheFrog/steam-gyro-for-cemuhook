@@ -1,8 +1,8 @@
-let nodeExternals = require("webpack-node-externals");
-let merge = require("webpack-merge");
-let path = require("path");
+const nodeExternals = require("webpack-node-externals");
+const { merge } = require("webpack-merge");
+const path = require("path");
 
-let clientConfig = {
+const clientConfig = {
     target: "electron-main",
     entry: {
         main: "./backend/main.ts"
@@ -17,13 +17,18 @@ let clientConfig = {
     },
     module: {
         rules: [{
-                test: /\.ts$/i,
-                use: ["ts-loader"]
-            },
-            {
-                test: /\.(ico|gif|png|jpe?g|svg)$/i,
-                use: "file-loader?name=images/[name].[ext]"
-            }
+            test: /\.ts$/i,
+            use: [{
+                loader: "ts-loader",
+                options: {
+                    configFile: "tsconfig.backend.json"
+                }
+            }]
+        },
+        {
+            test: /\.(ico|gif|png|jpe?g|svg)$/i,
+            use: "file-loader?name=images/[name].[ext]"
+        }
         ]
     },
     externals: [
@@ -39,7 +44,7 @@ let clientConfig = {
     }
 };
 
-let developmentConfig = {
+const developmentConfig = {
     devtool: "source-map",
     performance: {
         hints: false
@@ -52,7 +57,7 @@ let developmentConfig = {
     mode: "development"
 };
 
-let productionConfig = {
+const productionConfig = {
     mode: "production"
 };
 

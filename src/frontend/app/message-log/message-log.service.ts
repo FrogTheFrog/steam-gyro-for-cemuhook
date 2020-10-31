@@ -1,6 +1,6 @@
 import { Overlay, OverlayRef } from "@angular/cdk/overlay";
-import { ComponentPortal, PortalInjector } from "@angular/cdk/portal";
-import { Injectable, Injector, NgZone, OnDestroy } from "@angular/core";
+import { ComponentPortal } from "@angular/cdk/portal";
+import { Injectable, Injector, NgZone, OnDestroy, StaticProvider } from "@angular/core";
 import { BehaviorSubject } from "rxjs";
 import { ErrorObject, MessageObject } from "../../../shared/models";
 import { IpcService } from "../shared/services/ipc.service";
@@ -134,12 +134,12 @@ export class MessageLogService implements OnDestroy {
      * @param messageRef Reference to overlay.
      */
     private createInjector(message: MessageObject, messageRef: MessageOverlayRef) {
-        const injectionTokens = new WeakMap();
+        const providers: StaticProvider[] = [];
 
-        injectionTokens.set(MessageOverlayRef, messageRef);
-        injectionTokens.set(MESSAGE_OBJECT_DATA, message.data);
+        providers.push({ provide: MessageOverlayRef, useValue: messageRef });
+        providers.push({ provide: MESSAGE_OBJECT_DATA, useValue: message.data });
 
-        return new PortalInjector(this.injector, injectionTokens);
+        return Injector.create({ providers, parent: this.injector });
     }
 
     /**

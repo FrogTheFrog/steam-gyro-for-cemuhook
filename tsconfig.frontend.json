@@ -1,0 +1,6 @@
+{
+    "extends": "./tsconfig.json",
+    "files": [
+        "src/frontend/main.ts"
+    ]
+}

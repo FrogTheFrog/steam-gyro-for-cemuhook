@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.4.1 - 2020-10-31
+
+### Changed
+* Updated dependencies in order to add Raspberry Pi support (#40).
+
 ## 1.4.0 - 2020-09-25
 
 ### Fixed

@@ -19,7 +19,7 @@ export class AppServer {
     /**
      * @param ui User interface module.
      */
-    constructor(private ui: AppUserInterface) {
+    constructor(private ui: AppUserInterface | null) {
         this.serverInstance.addController(this.controller);
     }
 
@@ -29,7 +29,7 @@ export class AppServer {
      */
     public async start(settings: UserSettings["server"]) {
         await this.serverInstance.start(settings.port, settings.address);
-        this.ui.tray.setToolTip(`Server@${settings.address}:${settings.port}`);
+        this.ui?.tray.setToolTip(`Server@${settings.address}:${settings.port}`);
     }
 
     /**

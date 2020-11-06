@@ -26,43 +26,62 @@ export class AppManager {
         if (app.requestSingleInstanceLock()) {
             await app.whenReady();
 
-            // Required for MacOS
-            app.on("activate", () => ui.open(true).catch((error) => manager.logError(error, { isFatal: true })));
-
-            // Prevent app exit upon renderer window close
-            app.on("window-all-closed", (event: Event) => {
-                event.preventDefault();
-            });
-
-            const exitCallback = () => {
-                manager.exit().catch((error) => manager.logError(error, { isFatal: true }));
-            };
-            const serverRestartCallback = () => {
-                server.start(settings.current.server).catch((error) => manager.logError(error, { isFatal: true }));
-            };
-            const showRendererCallback = () => {
-                ui.open(true).catch((error) => manager.logError(error, { isFatal: true }));
-            };
-
-            const ipc = new IpcMain<IpcEvents>();
-            const ui = new AppUserInterface(exitCallback, serverRestartCallback, showRendererCallback);
-            const settings = new AppUserSettings();
-            const server = new AppServer(ui);
-            const manager = new AppManager(ui, settings, server, ipc, userDirectory, settingsFilename);
-
             const settingsPath = path.join(userDirectory, settingsFilename);
-            let disableSaving = true;
+            const settings = new AppUserSettings();
+
+            let lastSettingsReadError: Error | null = null;
 
             try {
                 const readSettings = await settings.readSettings(settingsPath);
-
-                disableSaving = false;
                 settings.current = readSettings !== null ? readSettings : settings.current;
-                
-                await server.start(settings.current.server);
             } catch (error) {
-                manager.logError(error, { display: true });
-                settings.savingDisabled = disableSaving;
+                lastSettingsReadError = error;
+            }
+
+            let ipc: IpcMain<IpcEvents> | null = null;
+            let ui: AppUserInterface | null = null;
+
+            if (!settings.current.headless) {
+                // Required for MacOS
+                app.on("activate", () => ui?.open(true).catch((error) => manager.logError(error, { isFatal: true })));
+
+                // Prevent app exit upon renderer window close
+                app.on("window-all-closed", (event: Event) => {
+                    event.preventDefault();
+                });
+
+                const exitCallback = () => {
+                    manager.exit().catch((error) => manager.logError(error, { isFatal: true }));
+                };
+                const serverRestartCallback = () => {
+                    server.start(settings.current.server).catch((error) => manager.logError(error, { isFatal: true }));
+                };
+                const showRendererCallback = () => {
+                    ui?.open(true).catch((error) => manager.logError(error, { isFatal: true }));
+                };
+
+                ui = new AppUserInterface(exitCallback, serverRestartCallback, showRendererCallback);
+                ipc = new IpcMain<IpcEvents>();
+            }
+
+            const server = new AppServer(ui);
+            const manager = new AppManager(ui, settings, server, ipc, userDirectory, settingsPath);
+
+            if (lastSettingsReadError !== null) {
+                manager.logError(lastSettingsReadError, { display: true });
+            }
+            else {
+                try {
+                    const serverSettings = settings.current.server;
+                    await server.start(serverSettings);
+                    manager.logInfo(`Started server@${serverSettings.address}:${serverSettings.port}`);
+                } catch (error) {
+                    manager.logError(error, { display: true });
+                    if (settings.current.headless) {
+                        manager.logError(new Error("Exiting the app since nothing can be done in headless mode!"),
+                            { isFatal: true });
+                    }
+                }
             }
 
             return manager;
@@ -72,12 +91,7 @@ export class AppManager {
     /**
      * Stores various subscriptions.
      */
-    private subscriptions: Subscription;
-
-    /**
-     * Full path to settings file.
-     */
-    private settingsPath: string;
+    private subscriptions = new Subscription();
 
     /**
      * Instance of winston logger.
@@ -90,19 +104,20 @@ export class AppManager {
     private messages: MessageObject[] = [];
 
     private constructor(
-        private ui: AppUserInterface,
+        private ui: AppUserInterface | null,
         private settings: AppUserSettings,
         private server: AppServer,
-        private ipc: IpcMain<IpcEvents>,
+        private ipc: IpcMain<IpcEvents> | null,
         private userDirectory: string,
-        private settingsFilename: string,
+        private settingsPath: string,
     ) {
+        // Create logger before anything else
         this.logger = createLogger({
             exitOnError: false,
             format: format.combine(
                 format.timestamp(),
-                format.printf(({ message, timestamp }) => {
-                    return `[${timestamp}] ${message}`;
+                format.printf((data) => {
+                    return `[${data.timestamp}] ${data.stack || data.message}`;
                 }),
             ),
             transports: [
@@ -110,6 +125,18 @@ export class AppManager {
                 new transports.File({ level: "error", filename: path.join(this.userDirectory, "sgfc.log") }),
             ],
         });
+
+        // Verify headless mode validity
+        if (settings.current.headless !== (this.ui === null && this.ipc === null)) {
+            this.logError(new Error(`Invalid headless mode!`), { isFatal: true });
+            return;
+        }
+
+        // Setup connections to UI if possible
+        this.ipc?.receiver.onError.add((error) => this.logError(error, { isFatal: true }));
+        this.bindEvents();
+
+        // Try to get current controller status before subscribing
         const logDeviceInfo = (data: string | null, isConnected: boolean) => {
             if (data !== null) {
                 this.logInfo(`Device status: ${isConnected ? "Connected" : "Disconnected"}`, { stack: data });
@@ -117,11 +144,7 @@ export class AppManager {
         };
         logDeviceInfo(this.server.controller.infoString, this.server.controller.isOpen());
 
-        this.settingsPath = path.join(this.userDirectory, this.settingsFilename);
-        this.ipc.receiver.onError.add((error) => this.logError(error, { isFatal: true }));
-        this.bindEvents();
-
-        this.subscriptions = new Subscription();
+        // Add various event subscriptions
         this.subscriptions.add(this.server.serverInstance.onError.subscribe((value) => {
             this.logError(value, { display: true });
         })).add(this.server.serverInstance.onInfo.subscribe((value) => {
@@ -129,6 +152,9 @@ export class AppManager {
         })).add(this.server.controller.onOpenClose.subscribe((value) => {
             logDeviceInfo(value.info, value.status);
         }));
+
+        // Log a message to output
+        this.logInfo(`App started successfully${settings.current.headless ? " in headless mode" : ""}.`);
     }
 
     /**
@@ -136,8 +162,8 @@ export class AppManager {
      */
     public async exit() {
         await this.server.prepareToExit();
-        this.ui.prepareToExit();
-        this.ipc.receiver
+        this.ui?.prepareToExit();
+        this.ipc?.receiver
             .removeDataHandler(false)
             .removeNotification(false);
         this.subscriptions.unsubscribe();
@@ -191,17 +217,19 @@ export class AppManager {
     public logMessageToRenderer(message: MessageObject, display: boolean = false) {
         const index = this.messages.push(message) - 1;
 
-        if (display || this.ui.ready) {
-            this.ui.open(display)
-                .then((renderer) => {
-                    this.ipc.createSender(renderer.webContents).notify(
-                        "POST",
-                        "sync-messages",
-                        {
-                            displayIndex: display ? index : undefined,
-                        },
-                    );
-                }).catch((value) => this.logError(value, { isFatal: true }));
+        if (this.ui !== null) {
+            if (display || this.ui.ready) {
+                this.ui.open(display)
+                    .then((renderer) => {
+                        this.ipc!.createSender(renderer.webContents).notify(
+                            "POST",
+                            "sync-messages",
+                            {
+                                displayIndex: display ? index : undefined,
+                            },
+                        );
+                    }).catch((value) => this.logError(value, { isFatal: true }));
+            }
         }
     }
 
@@ -211,7 +239,7 @@ export class AppManager {
     private serverEvents() {
         const serverSettings = Object.assign({}, this.settings.current.server);
 
-        this.ipc.receiver.on("GET", "settings:server", () => {
+        this.ipc?.receiver.on("GET", "settings:server", () => {
             return serverSettings;
         }).on("PUT", "settings:server:address", (data) => {
             serverSettings.address = data;
@@ -235,7 +263,7 @@ export class AppManager {
     private dataStreamEvents() {
         let subscription: Subscription = new Subscription();
 
-        this.ipc.receiver.on("POST", "data-stream", (stream, response) => {
+        this.ipc?.receiver.on("POST", "data-stream", (stream, response) => {
             this.subscriptions.remove(subscription);
             subscription.unsubscribe();
             if (stream) {
@@ -251,7 +279,7 @@ export class AppManager {
      * Assign filter related events.
      */
     private filterEvents() {
-        this.ipc.receiver.on("GET", "settings:filter", () => {
+        this.ipc?.receiver.on("GET", "settings:filter", () => {
             return this.settings.current.filter;
         }).on("PUT", "settings:filter", (data) => {
             this.settings.current.filter.type = data.type;
@@ -270,7 +298,7 @@ export class AppManager {
     private deviceStatusEvents() {
         let subscription: Subscription = new Subscription();
 
-        this.ipc.receiver.on("POST", "device-status", (streamStatus, response) => {
+        this.ipc?.receiver.on("POST", "device-status", (streamStatus, response) => {
             this.subscriptions.remove(subscription);
             subscription.unsubscribe();
             if (streamStatus) {
@@ -289,7 +317,7 @@ export class AppManager {
     private connectionStatusEvents() {
         let subscription: Subscription = new Subscription();
 
-        this.ipc.receiver.on("POST", "connection-status", (streamStatus, response) => {
+        this.ipc?.receiver.on("POST", "connection-status", (streamStatus, response) => {
             this.subscriptions.remove(subscription);
             subscription.unsubscribe();
             if (streamStatus) {
@@ -307,7 +335,7 @@ export class AppManager {
     private motionDataEvents() {
         let subscription: Subscription = new Subscription();
 
-        this.ipc.receiver.on("POST", "motion-data-stream", (stream, response) => {
+        this.ipc?.receiver.on("POST", "motion-data-stream", (stream, response) => {
             this.subscriptions.remove(subscription);
             subscription.unsubscribe();
             if (stream) {
@@ -323,7 +351,7 @@ export class AppManager {
      * Assign message exchange related events.
      */
     private messageEvents() {
-        this.ipc.receiver.on("POST", "sync-messages", (message) => {
+        this.ipc?.receiver.on("POST", "sync-messages", (message) => {
             if (message.type === "error") {
                 this.logError(message.data);
             } else {

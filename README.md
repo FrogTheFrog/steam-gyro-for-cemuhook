@@ -34,6 +34,10 @@ Finally, go to Cemu and make sure motion source is selected:
 
 ![cemu-example](./assets/cemu-example.png "Cemu example")
 
+## Headless mode
+
+App can be started in a headless mode of some sort. In this mode the UI will never be instantiated. This mode can be enabled by a hidden setting in generated configuration file. 
+
 ## Icon
 
 The icon is licensed to me, so keep that in mind.

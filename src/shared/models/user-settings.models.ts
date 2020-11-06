@@ -8,6 +8,7 @@ export interface UserSettings {
         type: AvailableFilters,
         data: FilterData,
     };
+    headless: boolean;
     server: {
         address: string,
         port: number,
@@ -58,6 +59,10 @@ export const UserSettingsSchema = {
                 },
             },
             type: "object",
+        },
+        headless: {
+            default: false,
+            type: "boolean",
         },
         server: {
             default: {},

@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.4.2 - 2020-11-06
+
+### Added
+* Added a headless mode where UI is never instantiated.
+
 ## 1.4.1 - 2020-10-31
 
 ### Changed

@@ -1,3 +1,9 @@
+## Note: 
+* Project is archived from **2022-03-06** onwards
+* SteamDeck is not supported, however for more info check https://github.com/FrogTheFrog/steam-gyro-for-cemuhook/issues/47
+
+----
+
 [![Build Status](https://travis-ci.com/FrogTheFrog/steam-gyro-for-cemuhook.svg?branch=master)](https://travis-ci.com/FrogTheFrog/steam-gyro-for-cemuhook)
 
 # Play your favorite CEMU games with your Steam Controller's GYRO!

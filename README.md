@@ -4,8 +4,6 @@
 
 ----
 
-[![Build Status](https://travis-ci.com/FrogTheFrog/steam-gyro-for-cemuhook.svg?branch=master)](https://travis-ci.com/FrogTheFrog/steam-gyro-for-cemuhook)
-
 # Play your favorite CEMU games with your Steam Controller's GYRO!
 
 ## Requirements
